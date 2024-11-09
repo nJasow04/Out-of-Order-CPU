@@ -1,14 +1,11 @@
 module cpu_tb;
   
     reg clk = 0;
-    reg reset = 1;
+    reg reset = 0;
   
-    reg [7:0] instruction_bytes [0:1023];  // 4 bytes per instruction * 256 instructions = 1024 bytes
+    reg [7:0] instruction_bytes [0:1023];  
     
-    // Declare the instruction memory in the fetch unit
-    reg [31:0] instruction_memory [0:255];   
-
-    // Instantiate the CPU top module
+    // Top level
     cpu_top cpu_uut (
         .clk(clk),
         .reset_n(reset)
@@ -39,9 +36,8 @@ module cpu_tb;
         end
       	
         // Apply reset and then simulate
-        #50 reset = 0; 
+        #50 reset = 1; 
 
-        #50 reset = 1;
         #500;
         $finish();
     end
