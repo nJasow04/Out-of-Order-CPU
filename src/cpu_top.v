@@ -1,21 +1,17 @@
-//`include "fetch.v"
+`include "fetch.v"
 
 module cpu_top
 (
     input clk,
-    input reset_n,
-	 input [8191:0] instruction_memory
+    input reset_n
 );
   	wire [31:0] instruction_fetch;
-	
 
     // Instantiate Fetch Unit
     fetch fetch_unit (
-			.clk(clk),
-			.reset_n(reset),
-			.instruction_memory(instruction_memory),
-			.instruction(instruction_fetch)
-			
+        .clk(clk),
+        .reset_n(reset),
+      	.instruction(instruction_fetch)
     );
     wire [31:0] instruction_fetch_pipelined;
 
@@ -42,20 +38,6 @@ module cpu_top
         .funct7(funct7),
         .funct3(funct3),
         .opcode(opcode)
-    );
-
-    wire [31:0] immediate;
-
-    immediate_generate imm_gen (
-        .instruction(instruction_fetch_pipelined),
-        .immediate(immediate)
-    );
-
-    pipeline_buffer ID_EX_buffer (
-        .clk(clk),
-        .reset_n(reset_n),
-        .data_in(),
-        .data_out()
     );
     
 endmodule
