@@ -43,5 +43,19 @@ module cpu_top
         .funct3(funct3),
         .opcode(opcode)
     );
+
+    wire [31:0] immediate;
+
+    immediate_generate imm_gen (
+        .instruction(instruction_fetch_pipelined),
+        .immediate(immediate)
+    );
+
+    pipeline_buffer ID_EX_buffer (
+        .clk(clk),
+        .reset_n(reset_n),
+        .data_in(),
+        .data_out()
+    );
     
 endmodule
