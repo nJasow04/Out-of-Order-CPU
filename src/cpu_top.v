@@ -53,5 +53,4 @@ module cpu_top
         .data_in(),
         .data_out()
     );
-    
 endmodule
