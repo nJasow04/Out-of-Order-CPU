@@ -1,59 +1,48 @@
-module cpu_tb ();
-	
-    // parameters:
-    integer PC_MAX = 20;
-
-    // holds each byte
-    reg [7:0] instruction_bytes [0:1023]; 
-
-    // holds each instruction
-    reg [31:0] instruction_mem [0:255];   
-
-    // clock and instructions
+module cpu_tb;
+  
     reg clk = 0;
-    reg [31:0] instruction = 0;
+    reg reset = 1;
+  
+    reg [7:0] instruction_bytes [0:1023];  // 4 bytes per instruction * 256 instructions = 1024 bytes
+    
+    // Declare the instruction memory in the fetch unit
+    reg [31:0] instruction_memory [0:255];   
 
-    integer pc = 0;
-
-    // instantiate CPU
+    // Instantiate the CPU top module
     cpu_top cpu_uut (
         .clk(clk),
-        .instruction(instruction),
+        .reset_n(reset)
     );
 
+    // Clock generation
     always #100 clk = ~clk;
 
+    // Integer for looping
+    integer i;
+
     initial begin
+        // Set up waveform dumping
+        $dumpfile("dump.vcd"); 
+        $dumpvars(0, cpu_uut);  
 
-        // create wave forms
-		$dumpfile("test.vcd");
-      	$dumpvars(1, cpu_tb);
-
-        // Load the bytes from the file
+        // Read in the instruction bytes from the file (my_file.txt)
         $readmemh("my_file.txt", instruction_bytes);
-        
-        for (int i = 0; i < 256; i = i + 1) begin
-            instruction_mem[i] = {instruction_bytes[4*i+3], instruction_bytes[4*i+2], instruction_bytes[4*i+1], instruction_bytes[4*i]};
+      
+        // Loop through the instruction bytes and assemble them into 32-bit instructions
+        for (i = 0; i < 256; i = i + 1) begin
+            cpu_uut.fetch_unit.instruction_memory[i] = {
+                instruction_bytes[4*i+3],  // Least significant byte (LSB)
+                instruction_bytes[4*i+2],  // Second byte
+                instruction_bytes[4*i+1],  // Third byte
+                instruction_bytes[4*i]     // Most significant byte (MSB)
+            };
         end
+      	
+        // Apply reset and then simulate
+        #50 reset = 0; 
 
-        $display("Contents of instruction memory:");
-      	for (int i = 0; i < PC_MAX; i = i + 1) begin
-            $display("instruction_mem[%0d] = %h", i, instruction_mem[i]);
-        end
-
+        #50 reset = 1;
+        #500;
+        $finish();
     end
-
-    always @(posedge clk) begin
-      	if (pc < PC_MAX) begin
-
-            // Read two consecutive instructions
-            instruction = instruction_mem[pc];
-
-            pc = pc + 1;
-        end
-        else begin
-            $stop;
-        end
-    end
-
 endmodule
