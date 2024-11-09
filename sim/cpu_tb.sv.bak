@@ -1,7 +1,7 @@
 module cpu_tb ();
 	
     // parameters:
-    localparam integer PC_MAX = 20;
+    integer PC_MAX = 20;
 
     // holds each byte
     reg [7:0] instruction_bytes [0:1023]; 
@@ -18,7 +18,7 @@ module cpu_tb ();
     // instantiate CPU
     cpu_top cpu_uut (
         .clk(clk),
-        .instruction(instruction)
+        .instruction(instruction),
     );
 
     always #100 clk = ~clk;
@@ -37,7 +37,7 @@ module cpu_tb ();
         end
 
         $display("Contents of instruction memory:");
-		  for (int i = 0; i < PC_MAX; i = i + 1) begin
+      	for (int i = 0; i < PC_MAX; i = i + 1) begin
             $display("instruction_mem[%0d] = %h", i, instruction_mem[i]);
         end
 
