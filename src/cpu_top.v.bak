@@ -1,4 +1,4 @@
-//`include "fetch.v"
+`include "fetch.v"
 
 module cpu_top
 (
