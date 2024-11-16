@@ -1,0 +1,41 @@
+# General
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+*~
+
+# Verilog/HDL-specific
+*.vcd
+*.wlf
+*.svf
+
+# Vivado
+*.jou
+*.log
+*.str
+*.lck
+*.backup
+*.runs/
+*.cache/
+*.hw/
+*.xpr
+*.srcs/
+*.ip_user_files/
+*.sim/
+*.vivado/
+
+# ModelSim
+*.wlf
+*.vstf
+*.rpt
+transcript
+work/
+
+# MacOS-specific
+.DS_Store
+._*
+
+# VSCode-specific
+.vscode/
