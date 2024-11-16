@@ -16,15 +16,17 @@ module rename(
 	parameter NUM_PHYS_REGS = 64;
 	 reg [NUM_PHYS_REGS-1:0] free_list;
     reg [5:0] rename_alias_table [31:0];
+	 //reg[5:0] next_phys_reg;
     integer i;
 
     // Combinational logic for renaming
     always @(*) begin
-        phys_rd = 6'b111111;
-        free_list_empty = 0;
         
         if (issue_valid) begin
             // Find first free register combinationally
+				phys_rd = 6'b111111;
+				free_list_empty = 0;
+				
             for(i = 0; i < NUM_PHYS_REGS; i = i + 1) begin
                 if (free_list[i] && phys_rd == 6'b111111) begin
                     phys_rd = i[5:0];
@@ -33,6 +35,9 @@ module rename(
             end
 				if(phys_rd == 6'b111111) begin
 					free_list_empty = 1;
+					//don't need to implement stalling
+					//just print an error
+					//don't need to account for flushing instructions, so don't need to store prev phys_reg in ROB, only the current, replace current tag with old tag
 				end
 				else begin
 					phys_rs1 = rename_alias_table[rs1]; 
