@@ -1,34 +1,26 @@
-module cpu_tb;
+module cpu_tb ();
   
-    reg clk = 0;
-    reg reset = 0;
-  
-    reg [7:0] instruction_bytes [0:1023];  
+    reg clk, reset_n;
     
     // Top level
     cpu_top cpu_uut (
         .clk(clk),
-        .reset_n(reset)
+        .reset_n(reset_n)
     );
 
-    // instruction memory
-    reg [31:0] instruction_memory [0:255];
-
     // Clock generation
+    initial begin
+        clk = 1'b0;
+        reset_n = 1'b0;
+    end
+    
     always #100 clk = ~clk;
 
-    // Integer for looping
-    integer i;
-
     initial begin
-        // Set up waveform dumping
-        $dumpfile("dump.vcd"); 
-        $dumpvars(0, cpu_uut);  
-      	
-        // Apply reset and then simulate
-        #50 reset = 1; 
+        #50 reset_n = 1; 
+        	
+        repeat (30) @(posedge clk);
 
-        #1000;
-        $finish();
+        $stop();
     end
 endmodule

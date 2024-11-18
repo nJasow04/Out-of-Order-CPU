@@ -6,7 +6,6 @@ module instruction_rom (
     reg [31:0] instruction_memory [0:255]; 
     integer i;
 
-
     initial begin
         $readmemh("C:/Users/conno/Documents/Quartus_OoO_CPU/my_file.txt", instruction_bytes);
         for (i = 0; i < 256; i = i + 1) begin
