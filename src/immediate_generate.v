@@ -7,6 +7,7 @@ module immediate_generate (
     parameter I_TYPE = 7'b0010011;
     parameter S_TYPE = 7'b0100011;
     parameter U_TYPE = 7'b0110111;
+	parameter LW_TYPE = 7'b0000011;
     
     wire [6:0] opcode = instruction[6:0];
 
@@ -19,6 +20,10 @@ module immediate_generate (
             I_TYPE: 
                 begin
                     immediate = { { 20{instruction[31]} }, instruction[31:20]}; // sign-extend MSB
+                end
+			LW_TYPE:
+                begin
+                    immediate = { { 20{instruction[31]} }, instruction[31:20]}; // sign-extend
                 end
             S_TYPE: 
                 begin

@@ -6,9 +6,8 @@ module instruction_rom (
     reg [31:0] instruction_memory [0:255]; 
     integer i;
 
-
     initial begin
-        $readmemh("my_file.txt", instruction_bytes);
+        $readmemh("C:/Users/conno/Documents/Quartus_OoO_CPU/my_file.txt", instruction_bytes);
         for (i = 0; i < 256; i = i + 1) begin
             instruction_memory[i] = {
               	instruction_bytes[4*i],    // Most significant byte (MSB)
