@@ -1,4 +1,5 @@
 `timescale 1ns/1ps
+`include "/home/mark/Documents/workspace/Out-of-Order-CPU/src/rename.v" 
 
 module rename_tb;
 
@@ -7,7 +8,7 @@ module rename_tb;
     reg [4:0] rs1;
     reg [4:0] rs2;
     reg issue_valid;
-    reg reset_n;
+    reg reset_n = 1;
     reg clk;
     reg retire_valid;
     reg [5:0] retire_phys_reg;
@@ -50,16 +51,15 @@ module rename_tb;
         reset_n = 0;
 
         // Reset the module to start fresh
-        #10 reset_n = 1;
+        #10 
         #10 reset_n = 0;
-        #10 reset_n = 1;
+        #10 
         
+        reset_n = 1;
         // Test Case 1: Issue three renaming requests in a row
         #20;
         issue_rename_request(5'b00001, 5'b00010, 5'b00011); // rd = 1, rs1 = 2, rs2 = 3
-        #10;
         issue_rename_request(5'b00010, 5'b00100, 5'b00001); // rd = 2, rs1 = 4, rs2 = 1
-        #10;
         issue_rename_request(5'b00011, 5'b00101, 5'b00010); // rd = 3, rs1 = 5, rs2 = 2
         #10;
 
@@ -95,7 +95,7 @@ module rename_tb;
     // Task to issue a rename request
     task issue_rename_request(input [4:0] in_rd, input [4:0] in_rs1, input [4:0] in_rs2);
         begin
-				#5
+			#5
             rd = in_rd;
             rs1 = in_rs1;
             rs2 = in_rs2;
