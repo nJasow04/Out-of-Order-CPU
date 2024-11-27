@@ -7,28 +7,28 @@ module rename (
 	input [4:0] rs2,
     input [4:0] rd,
 	input [5:0] retire_phys_reg,
+	input complete_valid,
+	input [5:0] complete_phys_reg,
 	output reg [5:0] phys_rd,
 	output reg [5:0] phys_rs1,
 	output reg [5:0] phys_rs2,
-	output reg free_list_empty 
+	output reg [5:0] old_phys_rd,
+	output reg [4:0] arch_reg,
+	output reg free_list_empty
+	
 );
-	parameter NUM_PHYS_REGS = 64; // Physical Registers
-	parameter NUM_ARCH_REGS = 32; // Architectural registers 
-    
-    reg [NUM_PHYS_REGS-1:0] free_list;
-    
-    // 6 bits to represent 64 physical regs
-    reg [5:0] rename_alias_table [NUM_ARCH_REGS-1:0];
+	parameter NUM_PHYS_REGS = 64;
+	 reg [NUM_PHYS_REGS-1:0] free_list;
+    reg [5:0] rename_alias_table [31:0];
     integer i;
+	 
+	 
 
     // Combinational logic for renaming
     always @(*) begin
-        
         if (issue_valid) begin
-
-            phys_rd = 6'b111111;
-            free_list_empty = 0; // 1: free list empty
-			
+		  
+				
             // Find first free register combinationally
             for(i = 0; i < NUM_PHYS_REGS; i = i + 1) begin
                 if (free_list[i] && phys_rd == 6'b111111) begin
@@ -43,16 +43,36 @@ module rename (
 				else begin
 					phys_rs1 = rename_alias_table[rs1]; 
 					phys_rs2 = rename_alias_table[rs2];
+					old_phys_rd = rename_alias_table[rd];
 				end
+				
         end
+		  else if (retire_valid) begin
+            arch_reg = 5'b11111; // Default invalid value
+            for (i = 0; i < 32; i = i + 1) begin
+                if (arch_reg == 5'b11111 && rename_alias_table[i] == retire_phys_reg) begin
+                    arch_reg = i[4:0]; // Found the architectural register
+                end
+            end
+        end
+		  else begin
+			i=0;
+			phys_rd = 6'b111111;
+			free_list_empty = 0;
+			phys_rs1=6'b111111;
+			phys_rs2=6'b111111;
+			old_phys_rd=6'b111111;
+			arch_reg=5'b11111;
+		  end
     end
 
     // Sequential logic for state updates only
-    always @(posedge clk or negedge reset_n) begin
-        // Reset free_list and alias table
+    always @(negedge clk or negedge reset_n) begin
+			//rename_done <= 0;
         if (!reset_n) begin
             free_list <= {NUM_PHYS_REGS{1'b1}};
-            for (i = 0; i < NUM_ARCH_REGS; i = i + 1) begin
+            for (i = 0; i < 32; i = i + 1) begin
+					
                 rename_alias_table[i] <= i;
                 free_list[i] <= 1'b0;
             end
