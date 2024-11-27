@@ -10,7 +10,7 @@ module rename (
     output reg [5:0] phys_rd,
     output reg [5:0] phys_rs1,
     output reg [5:0] phys_rs2,
-    output reg free_list_empty 
+    output reg free_list_full 
 );
 	// Constants
 	parameter NUM_PHYS_REGS = 64; // Physical Registers
@@ -24,30 +24,25 @@ module rename (
 
 	integer i;
 
+    // issue queue full logic
+    assign free_list_full = (phys_rd == INVALID_REG) ? 1'b1 : 1'b0;
+
 	// Combinational logic for renaming
 	always @(*) begin
 
-		if (issue_valid) begin
+		phys_rd = INVALID_REG;
+		phys_rs1 = rename_alias_table[rs1]; 
+		phys_rs2 = rename_alias_table[rs2];
 
-			phys_rd = INVALID_REG;
-			phys_rs1 = rename_alias_table[rs1]; 
-			phys_rs2 = rename_alias_table[rs2];
-			free_list_empty = 0; // 1: free list empty
-		
-			// Find first free register combinationally
-			for (i = 0; i < NUM_PHYS_REGS; i = i + 1) begin
-				if (free_list[i] && phys_rd == INVALID_REG) begin
-					phys_rd = i[5:0];
-				end
+		// Find first free register combinationally
+		for (i = 0; i < NUM_PHYS_REGS; i = i + 1) begin
+			if (free_list[i] && phys_rd == INVALID_REG) begin
+				phys_rd = i[5:0];
 			end
-			//don't need to implement stall, just print an error
-			//don't need to account for flushing instructions, so don't need to store prev phys_reg in ROB, only the current, replace current tag with old tag
-			if (phys_rd == INVALID_REG) 
-				free_list_empty = 1;
-			else
-				free_list_empty = 0;
-			
-	    end
+		end
+		//don't need to implement stall, just print an error
+		//don't need to account for flushing instructions, so don't need to store prev phys_reg in ROB, only the current, replace current tag with old tag
+		
 	end
 
 	// Sequential logic for state updates only
@@ -61,7 +56,7 @@ module rename (
         end
         else begin
             // Update state based on the combinationally computed phys_rd
-            if(issue_valid && !free_list_empty) begin
+            if(issue_valid && !free_list_full) begin
                 free_list[phys_rd] <= 1'b0;
                 rename_alias_table[rd] <= phys_rd;
             end
