@@ -20,8 +20,9 @@ module rename(
 	parameter NUM_PHYS_REGS = 64;
 	 reg [NUM_PHYS_REGS-1:0] free_list;
     reg [5:0] rename_alias_table [31:0];
-	 //reg[5:0] next_phys_reg;
     integer i;
+	 
+	 
 
     // Combinational logic for renaming
     always @(*) begin
@@ -51,7 +52,7 @@ module rename(
 				end
 				
         end
-		  if (retire_valid) begin
+		  else if (retire_valid) begin
             arch_reg = 5'b11111; // Default invalid value
             for (i = 0; i < 32; i = i + 1) begin
                 if (arch_reg == 5'b11111 && rename_alias_table[i] == retire_phys_reg) begin
@@ -59,6 +60,15 @@ module rename(
                 end
             end
         end
+		  else begin
+			i=0;
+			phys_rd = 6'b111111;
+			free_list_empty = 0;
+			phys_rs1=6'b111111;
+			phys_rs2=6'b111111;
+			old_phys_rd=6'b111111;
+			arch_reg=5'b11111;
+		  end
     end
 
     // Sequential logic for state updates only

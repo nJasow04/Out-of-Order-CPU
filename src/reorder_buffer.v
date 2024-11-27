@@ -22,7 +22,7 @@ module reorder_buffer(
 	 reg rob_valid[63:0];      // valid bit for each entry
     reg [5:0] rob_dest[63:0];        // destination register for each entry
     reg [5:0] rob_oldDest[63:0];     // previous destination register for each entry
-    reg rob_instr_addr[63:0];        // instruction address for each entry
+    reg [32:0] rob_instr_addr[63:0];        // instruction address for each entry
     reg rob_result_ready[63:0];      // result ready bit for each entry
     reg [31:0] rob_value[63:0];      // value for each entry
 	
@@ -36,9 +36,14 @@ module reorder_buffer(
 				commit_dest = rob_dest[head];
 				free_oldDest = rob_oldDest[head];
 				commit_value = rob_value[head];
+				i=0;
 		end
 		else begin
 				commit_valid = 0;
+				commit_dest = 6'b111111;
+				free_oldDest = 6'b111111;
+				commit_value = 0;
+				i=0;
 		end
 	end
 	
@@ -47,9 +52,14 @@ module reorder_buffer(
 			for(i = 0; i< 64; i=i+1) begin
 				rob_valid[i] <= 0;
 				rob_result_ready[i] <= 0;
+				rob_dest[i] <=0;
+				rob_oldDest[i] <= 0;
+				rob_value[i] <=0;
+				rob_instr_addr[i] <= 0;
 			end
 			head<= 0;
 			tail <= 0;
+			i=0;
 		end
 		else begin
 			if (alloc_valid && alloc_ready) begin
@@ -70,6 +80,7 @@ module reorder_buffer(
 				rob_valid[head] <= 0;
 				head <= (head+1) % 64;
 			end
+			i=0;
 			
 		end
 	end
