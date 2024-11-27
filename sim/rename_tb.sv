@@ -100,7 +100,7 @@ module rename_tb;
         #10 reset_n = 1;
         #10 reset_n = 0;
         #10 reset_n = 1;
-         issue_and_allocate(5'b00001, 5'b00010, 5'b00011, 32'hDEADBEEF); // Allocate rd = 1
+        issue_and_allocate(5'b00001, 5'b00010, 5'b00011, 32'hDEADBEEF); // Allocate rd = 1
         
         issue_and_allocate(5'b00010, 5'b00100, 5'b00001, 32'hCAFEBABE); // Allocate rd = 2
         
