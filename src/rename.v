@@ -1,10 +1,10 @@
 module rename (
     input clk,
-	input reset_n,
+    input reset_n,
     input issue_valid,
-	input retire_valid,
-	input [4:0] rs1,
-	input [4:0] rs2,
+    input retire_valid,
+    input [4:0] rs1,
+    input [4:0] rs2,
     input [4:0] rd,
 	input [5:0] retire_phys_reg,
 	input complete_valid,
@@ -14,7 +14,8 @@ module rename (
 	output reg [5:0] phys_rs2,
 	output reg [5:0] old_phys_rd,
 	output reg [4:0] arch_reg,
-	output reg free_list_empty
+	output reg free_list_empty,
+	output reg rename_valid
 	
 );
 	parameter NUM_PHYS_REGS = 64;
@@ -22,13 +23,10 @@ module rename (
     reg [5:0] rename_alias_table [31:0];
     integer i;
 	 
-	 
-
     // Combinational logic for renaming
     always @(*) begin
         if (issue_valid) begin
 		  
-				
             // Find first free register combinationally
             for(i = 0; i < NUM_PHYS_REGS; i = i + 1) begin
                 if (free_list[i] && phys_rd == 6'b111111) begin
@@ -38,9 +36,11 @@ module rename (
                 //don't need to implement stall, just print an error
                 //don't need to account for flushing instructions, so don't need to store prev phys_reg in ROB, only the current, replace current tag with old tag
 				if(phys_rd == 6'b111111) begin
+					rename_valid = 1'b0;
 					free_list_empty = 1;
 				end
 				else begin
+					rename_valid = 1'b1;
 					phys_rs1 = rename_alias_table[rs1]; 
 					phys_rs2 = rename_alias_table[rs2];
 					old_phys_rd = rename_alias_table[rd];
@@ -74,7 +74,6 @@ module rename (
             for (i = 0; i < 32; i = i + 1) begin
 					
                 rename_alias_table[i] <= i;
-                free_list[i] <= 1'b0;
             end
         end
         else begin
@@ -88,6 +87,6 @@ module rename (
                 free_list[retire_phys_reg] <= 1'b1;
             end
         end
-    end
+	end
 
 endmodule

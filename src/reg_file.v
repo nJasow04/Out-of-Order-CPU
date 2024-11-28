@@ -1,5 +1,6 @@
 module reg_file(
     input clk,
+    input reset_n,
     input [4:0] rs1,         // Read register 1
     input [4:0] rs2,         // Read register 2
     input [4:0] rd,          // Write register
@@ -18,10 +19,19 @@ module reg_file(
         rs2_data = (rs2 == 5'b00000) ? 32'b0 : registers[rs2]; // x0 is always 0
     end
 
+    integer i;
     // Write register data (synchronous write)
-    always @(posedge clk) begin
-        if (RegWrite && (rd != 5'b00000)) begin
-            registers[rd] <= rd_data; // Write data to rd if RegWrite is enabled
+    always @(posedge clk or negedge reset_n) begin
+        if (!reset_n) begin
+            for (i = 0; i < 32; i = i + 1) begin
+                registers[i] = 32'd0;
+            end
+        end
+        else
+        begin
+            if (RegWrite && (rd != 5'b00000)) begin
+                registers[rd] <= rd_data; // Write data to rd if RegWrite is enabled
+            end            
         end
     end
 
