@@ -28,7 +28,8 @@ module rename (
     always @(*) begin
         if (issue_valid) begin
 		  
-				
+				phys_rd = 6'b111111;
+				free_list_empty = 0;
             // Find first free register combinationally
             for(i = 0; i < NUM_PHYS_REGS; i = i + 1) begin
                 if (free_list[i] && phys_rd == 6'b111111) begin

@@ -41,14 +41,34 @@ module cpu_top
         .funct3(funct3),
         .opcode(opcode)
     );
+	 
+    wire is_load;
+    wire is_store;
+    wire is_byte;
+    wire is_word;
+	 wire is_instr;
 
+    // Instance of check_mem_instr
+    check_mem_instr check_mem_unit_inst (
+        .opcode(opcode),
+        .funct3(funct3),
+        .is_load(is_load),
+        .is_store(is_store),
+        .is_byte(is_byte),
+        .is_word(is_word),
+		  .is_instr(is_instr)
+    );
+	 
+	 wire is_mem = is_load | is_store;
+	 
+	 //immeditae gen and control signals to be done after the issue queue
+	/*
     wire [31:0] immediate;
 
     immediate_generate imm_gen (
         .instruction(instruction_fetch_pipelined),
         .immediate(immediate)
     );
-	 
 	 wire MemRead;
 	 wire MemWrite;
 	 wire MemtoReg;
@@ -71,15 +91,16 @@ module cpu_top
 	 wire [3:0] ALUControl;
 	 wire MemSize;
 	 
-	 ALUController ALUControl_unit(
+	 ALU_controller ALUControl_unit(
 		.ALUOp(ALUOp),
 		.funct3(funct3),
 		.funct7(funct7),
 		.ALUControl(ALUControl),
 		.MemSize(MemSize)
 	 );
+	 */
 	 
-	 wire [31:0] instruction_decode = {rd, rs1, rs2, ALUControl, ALUSrc, MemRead, MemWrite, MemtoReg, RegWrite, MemSize, LoadUpper};
+	 wire [31:0] instruction_decode = {rd, rs1, rs2, is_instr}; //if not mem then uses reg
 	 wire [31:0] instruction_decode_pipelined;
 	 
 	 
@@ -101,10 +122,10 @@ module cpu_top
 	 wire [4:0] arch_reg;
 	 
 	 rename rename_module(
-	 .rd(instruction_decode_pipelined[25:21]),
-	 .rs1(instruction_decode_pipelined[20:16]),
-	 .rs2(instruction_decode_pipelined[15:11]),
-	 .issue_valid(instruction_decode_pipelined[2]),
+	 .rd(instruction_decode_pipelined[15:11]),
+	 .rs1(instruction_decode_pipelined[10:6]),
+	 .rs2(instruction_decode_pipelined[5:1]),
+	 .issue_valid(instruction_decode_pipelined[0]),
 	 .reset_n(reset_n),
 	 .clk(clk),
 	 .retire_valid(retire), //fill in signal when retire added

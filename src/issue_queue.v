@@ -1,4 +1,4 @@
-`include "/home/mark/Documents/workspace/Out-of-Order-CPU/src/priority_encoder.v" 
+//`include "/home/mark/Documents/workspace/Out-of-Order-CPU/src/priority_encoder.v" 
 // TODO: read from reg file @ rising edge and set write enable high for that CC
 module issue_queue (
     input clk,
