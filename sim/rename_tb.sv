@@ -1,4 +1,5 @@
 `timescale 1ns/1ps
+// `include "/home/mark/Documents/workspace/Out-of-Order-CPU/src/rename.v" 
 
 module rename_tb;
 
@@ -7,7 +8,7 @@ module rename_tb;
     reg [4:0] rs1;
     reg [4:0] rs2;
     reg issue_valid;
-    reg reset_n;
+    reg reset_n = 1;
     reg clk;
     reg retire_valid;
     reg [5:0] retire_phys_reg;
