@@ -1,5 +1,5 @@
 `timescale 1ns/1ps
-`include "/home/mark/Documents/workspace/Out-of-Order-CPU/src/rename.v" 
+// `include "/home/mark/Documents/workspace/Out-of-Order-CPU/src/rename.v" 
 
 module rename_tb;
 

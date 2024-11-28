@@ -17,9 +17,8 @@ module issue_queue (
     // execute stage: forward and funct unit available
     input [5:0]  fwd_rd,
     input [31:0] fwd_rd_val,
-    input 
 
-    output reg [ENTRY_SIZE-1:0] issued_instruction,
+    output reg [129-1:0] issued_instruction,
     output reg issue_valid,
     output issue_queue_full
 );
@@ -28,8 +27,10 @@ module issue_queue (
     parameter NUM_PHYSICAL_REGS = 64;
     parameter NUM_INSTRUCTIONS = 64;
     parameter IQ_INDEX_BITS = $clog2(NUM_INSTRUCTIONS);
+    
     parameter ENTRY_SIZE = 129;
     parameter INVALID_ENTRY = 6'b111111;
+    parameter INVALID_ISSUE_QUEUE_ENTRY = 6'd0;
 
     // Register and Functional Unit scoreboards - 1: available 0: unavailable
     reg [NUM_PHYSICAL_REGS-1:0] register_file_scoreboard; 
@@ -55,85 +56,80 @@ module issue_queue (
     // update combinationally 
     always @(*) begin
 
+        // Defaults to prevent inferred latches
         free_entry = INVALID_ENTRY;
+        // issue_valid = 1'b0;
+        // issued_instruction = {ENTRY_SIZE{1'b0}};
 
+        // Find the first free entry
         for (i = 0; i < NUM_INSTRUCTIONS; i = i + 1) begin
             if (use_bits[i] == 1'b0 && free_entry == INVALID_ENTRY) begin
                 free_entry = i[5:0];
             end
         end
 
-        // reg file read: sets write_enable for next clock cycle
-        if (write_enable && !issue_queue_full) begin
-
-            // CREATE ENTRY
-            issue_queue[free_entry] = { 
-                opcode,          // 128:122
-                phys_rd,         // 121:116
-                phys_rs1,        // 115:110
-                phys_rs1_val,    // 109:78
-                phys_rs2,        // 77:72
-                phys_rs2_val,    // 71:40
-                immediate,       // 39:8
-                ROB_entry_index, // 7:2
-                FU_count         // 1:0
-            };
-            
-            // seperate table for ready bits (for easier lookup)
-            src1_ready[free_entry] = register_file_scoreboard[phys_rs1];
-            src2_ready[free_entry] = register_file_scoreboard[phys_rs2];
-            use_bits[free_entry] = 1'b1;
+        if (write_enable && free_entry != INVALID_ENTRY) begin
+            // Ready bits update (only update separate ready table)
+            //src1_ready[free_entry] = register_file_scoreboard[phys_rs1];
+            //src2_ready[free_entry] = register_file_scoreboard[phys_rs2];
+            // use_bits[free_entry] = 1'b1;
+            // issue_valid = 1'b1; 
         end
 
         // FORWARD LOGIC 
-        for (int i = 0; i < NUM_INSTRUCTIONS; i = i + 1) begin
-            // rs1 forward
-            if (issue_queue[i][115:110] == fwd_rd) begin
-                issue_queue[i][109:78] = fwd_rd_val;
-                src1_ready[i] = 1'b1;
-            end
-            // rs2 forward
-            if (issue_queue[i][77:72] == fwd_rd) begin
-                issue_queue[i][71:40] = fwd_rd_val;
-                src2_ready[i] = 1'b1;
-            end
-        end
+        // for (i = 0; i < NUM_INSTRUCTIONS; i = i + 1) begin
+        //     // rs1 forward
+        //     if (issue_queue[i][115:110] == fwd_rd) begin
+        //         issue_queue[i][109:78] = fwd_rd_val;
+        //         src1_ready[i] = 1'b1;
+        //     end
+        //     // rs2 forward
+        //     if (issue_queue[i][77:72] == fwd_rd) begin
+        //         issue_queue[i][71:40] = fwd_rd_val;
+        //         src2_ready[i] = 1'b1;
+        //     end
+        // end
     end
 
     // reset and update
     always @(posedge clk or negedge reset_n) begin
-        // RESET LOGIC
+        
         if (!reset_n) begin
+            // Reset all logic
             for (i = 0; i < NUM_INSTRUCTIONS; i = i + 1) begin
-                issue_queue[i] <= {ENTRY_SIZE {1'b0}};
+                issue_queue[i] <= {ENTRY_SIZE{1'b0}};
             end
-
-            register_file_scoreboard <= {NUM_PHYSICAL_REGS {1'b1}};
-            functional_unit_scoreboard <= {NUM_FUNCTIONAL_UNITS {1'b1}};  
-
-            use_bits <= {NUM_INSTRUCTIONS {1'b0}};
-            src1_ready <= {NUM_INSTRUCTIONS {1'b1}};
-            src2_ready <= {NUM_INSTRUCTIONS {1'b1}};
+            register_file_scoreboard <= {NUM_PHYSICAL_REGS{1'b1}};
+            funct_unit_scoreboard <= {NUM_FUNCTIONAL_UNITS{1'b1}};
+            use_bits <= {NUM_INSTRUCTIONS{1'b0}};
+            src1_ready <= {NUM_INSTRUCTIONS{1'b0}};
+            src2_ready <= {NUM_INSTRUCTIONS{1'b0}};
             FU_count <= 2'b0;
-        end 
-        // round robin counter and issue logic
-        else begin
+            issue_valid <= 1'b0;
 
-            // ROUND ROBIN LOGIC:
-            if (write_enable && !issue_queue_full) // TODO: validate in sim
+        end else begin
+            // Round-robin logic
+            if (write_enable && free_entry != INVALID_ENTRY) begin
                 FU_count <= (FU_count + 1) % NUM_FUNCTIONAL_UNITS;
 
-            // ISSUE LOGIC
-                // check if both src regs are ready and if entries FU is ready
-            for (int i = 0; i < NUM_INSTRUCTIONS; i = i + 1) begin
-                if (src1_ready[i] && src2_ready[i] && funct_unit_scoreboard[issue_queue[i][1:0]]) begin
-                    
-                    use_bits[i] <= 1'b0; // set unused
-                    issue_valid <= 1'b1; // dispatch signal
-                    funct_unit_scoreboard[issue_queue[i][1:0]] <= 1'b0;
-                    issued_instruction <= issue_queue[i];
-                end
+                // Write to issue queue
+                issue_queue[free_entry] <= {
+                    opcode, phys_rd, phys_rs1, phys_rs1_val,
+                    phys_rs2, phys_rs2_val, immediate,
+                    ROB_entry_index, FU_count
+                };
+                use_bits[free_entry] <= 1'b1;
             end
+
+            // // Issue logic
+            // for (i = 0; i < NUM_INSTRUCTIONS; i = i + 1) begin
+            //     if (src1_ready[i] && src2_ready[i] && funct_unit_scoreboard[issue_queue[i][1:0]]) begin
+            //         use_bits[i] <= 1'b0;
+            //         issue_valid <= 1'b1;
+            //         funct_unit_scoreboard[issue_queue[i][1:0]] <= 1'b0;
+            //         issued_instruction <= issue_queue[i];
+            //     end
+            // end
         end 
 
     end 

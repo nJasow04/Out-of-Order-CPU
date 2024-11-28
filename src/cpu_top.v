@@ -1,5 +1,3 @@
-//`include "fetch.v"
-
 module cpu_top
 (
     input clk,
@@ -79,50 +77,89 @@ module cpu_top
 		.MemSize(MemSize)
 	 );
 	 
-	 wire [31:0] instruction_decode = {rd, rs1, rs2, ALUControl, ALUSrc, MemRead, MemWrite, MemtoReg, RegWrite, MemSize, LoadUpper};
-	 wire [31:0] instruction_decode_pipelined;
+	 wire [31:0] instruction_decode_pipelined = {rd, rs1, rs2, ALUControl, ALUSrc, MemRead, MemWrite, MemtoReg, RegWrite, MemSize, LoadUpper};
+	 //wire [31:0] instruction_decode_pipelined = ;
 	 
 	 
-    pipeline_buffer ID_RN_buffer (
-        .clk(clk),
-        .reset_n(reset_n),
-		  .stall(stall),
-        .data_in(instruction_decode), //rd rs1 rs2, control sigs
-        .data_out(instruction_decode_pipelined)
-    );
+    // pipeline_buffer ID_RN_buffer (
+    //     .clk(clk),
+    //     .reset_n(reset_n),
+	// 	  .stall(stall),
+    //     .data_in(instruction_decode), //rd rs1 rs2, control sigs
+    //     .data_out(instruction_decode_pipelined)
+    // );
 	 
+	wire [5:0] phys_rd, phys_rs1, phys_rs2;
+	wire free_list_empty, rename_valid;
+	wire retire = 1'b0;
+	wire [5:0] free_reg;
+	wire [5:0] old_phys_rd;
+	wire [4:0] arch_reg;
 	 
+	rename rename_module(
+		.rd(instruction_decode_pipelined[25:21]),
+		.rs1(instruction_decode_pipelined[20:16]),
+		.rs2(instruction_decode_pipelined[15:11]),
+		.issue_valid(instruction_decode_pipelined[2]),
+		.reset_n(reset_n),
+		.clk(clk),
+		.retire_valid(retire), //fill in signal when retire added
+		.retire_phys_reg(free_reg), //fill in signal when retire added
+		.phys_rd(phys_rd),
+		.phys_rs1(phys_rs1),
+		.phys_rs2(phys_rs2),
+		.old_phys_rd(old_phys_rd),
+		.arch_reg(arch_reg),
+		.free_list_empty(free_list_empty),
+		.rename_valid(rename_valid)
+	);
+
+	wire rob_open = 1'b1;
+	wire [5:0] writeback_reg; //for forwarding that dest reg is ready?
+	wire [31:0] retire_value; //for updating reg file
+	wire [5:0] retire_reg = 6'b0;
+
+	wire [31:0] rs1_data, rs2_data;
+
+	reg_file architectural_register_file (
+		.clk(clk),
+		.reset_n(reset_n),
+		.rs1(instruction_decode_pipelined[20:16]),
+		.rs2(instruction_decode_pipelined[15:11]),
+		.rd(arch_reg),    // Use architectural register from RAT
+		.rd_data(retire_value),  // Value to write
+		.RegWrite(retire),       // Writeback enable from ROB
+		.rs1_data(rs1_data),
+		.rs2_data(rs2_data)
+	);
+
+	wire issue_queue_full, issue_valid;
+	wire [128:0] issued_instruction;
+
+	issue_queue issue_queue_inst(
+    	.clk(clk),
+    	.reset_n(reset_n),
+    	.write_enable(rename_valid), // reg read valid
+    
+    // rename stage: source and destination regs
+    	.phys_rd(phys_rd),
+    	.phys_rs1(phys_rs1),
+    	.phys_rs1_val(rs1_data),
+    	.phys_rs2(phys_rs2),
+    	.phys_rs2_val(rs2_data),
+    	.opcode(opcode),
+   		.immediate(immediate),
+    	.ROB_entry_index(6'b111111),
+
+    // execute stage: forward and funct unit available
+    	.fwd_rd(6'b1111111),
+    	.fwd_rd_val(32'd1),
+
+    	.issued_instruction(issued_instruction),
+    	.issue_valid(issue_valid),
+    	.issue_queue_full(issue_queue_full)
+);
 	 
-	 wire [5:0] phys_rd, phys_rs1, phys_rs2;
-	 wire free_list_empty;
-	 wire retire = 1'b0;
-	 wire [5:0] free_reg;
-	 wire [5:0] old_phys_rd;
-	 wire [4:0] arch_reg;
-	 
-	 rename rename_module(
-	 .rd(instruction_decode_pipelined[25:21]),
-	 .rs1(instruction_decode_pipelined[20:16]),
-	 .rs2(instruction_decode_pipelined[15:11]),
-	 .issue_valid(instruction_decode_pipelined[2]),
-	 .reset_n(reset_n),
-	 .clk(clk),
-	 .retire_valid(retire), //fill in signal when retire added
-	 .retire_phys_reg(free_reg), //fill in signal when retire added
-	 .phys_rd(phys_rd),
-	 .phys_rs1(phys_rs1),
-	 .phys_rs2(phys_rs2),
-	 .old_phys_rd(old_phys_rd),
-	 .arch_reg(arch_reg),
-	 .free_list_empty(free_list_empty)
-	 );
-	 
-	 
-	 
-	 wire rob_open = 1'b1;
-	 wire [5:0] writeback_reg; //for forwarding that dest reg is ready?
-	 wire [31:0] retire_value; //for updating reg file
-	 wire [5:0] retire_reg = 6'b0;
 	 
 	 reorder_buffer rob(
 		.clk(clk),
@@ -145,16 +182,6 @@ module cpu_top
 		
 	 );
 	 
-	 reg_file architectural_register_file (
-    .clk(clk),
-    .rs1(instruction_decode_pipelined[20:16]),
-    .rs2(instruction_decode_pipelined[15:11]),
-    .rd(arch_reg),    // Use architectural register from RAT
-    .rd_data(retire_value),  // Value to write
-    .RegWrite(retire),       // Writeback enable from ROB
-    .rs1_data(rs1_data),
-    .rs2_data(rs2_data)
-);
 	 
 	 assign stall = stall | free_list_empty | (!rob_open);
 	 
