@@ -60,13 +60,14 @@ module cpu_top
 	 wire is_mem = is_load | is_store;
 	 
 	 //immeditae gen and control signals to be done after the issue queue
-	/*
+	
     wire [31:0] immediate;
 
     immediate_generate imm_gen (
         .instruction(instruction_fetch_pipelined),
         .immediate(immediate)
     );
+	 /*
 	 wire MemRead;
 	 wire MemWrite;
 	 wire MemtoReg;
@@ -98,8 +99,6 @@ module cpu_top
 	 );
 	 */
 	 
-	 wire [31:0] instruction_decode = {rd, rs1, rs2, is_instr}; //if not mem then uses reg
-	 wire [31:0] instruction_decode_pipelined;
 	 
 	 
     // pipeline_buffer ID_RN_buffer (
@@ -118,10 +117,10 @@ module cpu_top
 	wire [4:0] arch_reg;
 	 
 	rename rename_module(
-		.rd(instruction_decode_pipelined[25:21]),
-		.rs1(instruction_decode_pipelined[20:16]),
-		.rs2(instruction_decode_pipelined[15:11]),
-		.issue_valid(instruction_decode_pipelined[2]),
+		.rd(rd),
+		.rs1(rs1),
+		.rs2(rs2),
+		.issue_valid(is_instr),
 		.reset_n(reset_n),
 		.clk(clk),
 		.retire_valid(retire), //fill in signal when retire added
@@ -145,8 +144,8 @@ module cpu_top
 	reg_file architectural_register_file (
 		.clk(clk),
 		.reset_n(reset_n),
-		.rs1(instruction_decode_pipelined[20:16]),
-		.rs2(instruction_decode_pipelined[15:11]),
+		.rs1(rs1),
+		.rs2(rs2),
 		.rd(arch_reg),    // Use architectural register from RAT
 		.rd_data(retire_value),  // Value to write
 		.RegWrite(retire),       // Writeback enable from ROB
@@ -185,7 +184,7 @@ module cpu_top
 	 reorder_buffer rob(
 		.clk(clk),
 		.reset_n(reset_n),
-		.alloc_valid(instruction_decode_pipelined[2]), //regwrite signal used
+		.alloc_valid(is_instr), //regwrite signal used
 		.alloc_dest(phys_rd),
 		.alloc_oldDest(old_phys_rd), //rd
 		.alloc_instr_addr(31'b0), //need to get pc? not sure if this is needed for now

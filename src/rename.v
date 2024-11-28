@@ -72,7 +72,8 @@ module rename (
     always @(negedge clk or negedge reset_n) begin
 			//rename_done <= 0;
         if (!reset_n) begin
-            free_list <= {NUM_PHYS_REGS{1'b1}};
+            //free_list <= {NUM_PHYS_REGS{1'b1}};
+				free_list <= {{NUM_PHYS_REGS-32{1'b1}}, {32{1'b0}}};
             for (i = 0; i < 32; i = i + 1) begin
 					
                 rename_alias_table[i] <= i;
