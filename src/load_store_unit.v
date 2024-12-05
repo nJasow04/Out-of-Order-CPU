@@ -1,39 +1,39 @@
 module load_store_unit (
-    input logic clk,
-    input logic reset,
+    input clk,
+    input reset,
 
     // Inputs from Decode and Check Mem Instr
     input [31:0] rs1_data,     // Source register 1 data from reg file
     input [31:0] rs2_data,     // Source register 2 data (store data) from reg file
     input [31:0] imm,          // Immediate value from Decode
-    input logic is_load,       // Load flag from check_mem_instr
-    input logic is_store,      // Store flag from check_mem_instr
-    input logic is_byte,       // Byte-level operation flag from check_mem_instr
-    input logic is_word,       // Word-level operation flag from check_mem_instr
+    input is_load,             // Load flag from check_mem_instr
+    input is_store,            // Store flag from check_mem_instr
+    input is_byte,             // Byte-level operation flag from check_mem_instr
+    input is_word,             // Word-level operation flag from check_mem_instr
 
     // Outputs to ROB and Complete Logic
-    output logic [31:0] read_data,  // Data read from memory
-    output logic mem_done,         // Memory operation completed
-    output logic [31:0] mem_address // Computed memory address
+    output reg [31:0] read_data,  // Data read from memory
+    output reg mem_done,          // Memory operation completed
+    output [31:0] mem_address     // Computed memory address
 );
 
     // Simulated 32KB memory (8192 words, each 4 bytes)
-    logic [31:0] memory [0:8191];  // 32KB memory as 8192 words of 4 bytes
+    reg [31:0] memory [0:8191];  // 32KB memory as 8192 words of 4 bytes
 
     // Internal registers
-    logic [31:0] effective_address; // Computed memory address
-    logic [12:0] word_address;      // Word address (13 bits for 8192 words)
-    logic [1:0] byte_offset;        // Byte offset within a word (2 bits for 4 selectionsd)
+    reg [31:0] effective_address; // Computed memory address
+    reg [12:0] word_address;      // Word address (13 bits for 8192 words)
+    reg [1:0] byte_offset;        // Byte offset within a word (2 bits for 4 selections)
 
-    // Compute the memory address and offsets (the Arithmetic Unit for Load Store Unit)
-    always_comb begin
+    // Compute the memory address and offsets
+    always @(*) begin
         effective_address = rs1_data + imm;    // Base address + offset
         word_address = effective_address[14:2]; // Extract word address (ignoring 2 LSBs for byte alignment)
         byte_offset = effective_address[1:0];  // Extract byte offset
     end
 
     // Perform memory operations
-    always_ff @(posedge clk or posedge reset) begin
+    always @(posedge clk or posedge reset) begin
         if (reset) begin
             read_data <= 0;
             mem_done <= 0;
