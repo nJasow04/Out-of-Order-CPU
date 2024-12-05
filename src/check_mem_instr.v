@@ -14,7 +14,7 @@ module check_mem_instr (
         is_store = 0;
         is_byte = 0;
         is_word = 0;
-		  is_instr = 1;
+		is_instr = 1;
 
         case (opcode)
             7'b0000011: begin
