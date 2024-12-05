@@ -33,6 +33,9 @@ module issue_queue_tb;
     reg [5:0] fwd_rd_funct_unit2;
     reg [31:0] fwd_rd_val_funct_unit2;
 
+    reg [5:0] fwd_rd_mem;
+    reg [31:0] fwd_rd_val_mem;
+
     // Outputs
     wire [138:0] issued_funct_unit0;
     wire [138:0] issued_funct_unit1;
@@ -66,6 +69,8 @@ module issue_queue_tb;
         .fwd_rd_val_funct_unit1(fwd_rd_val_funct_unit1),
         .fwd_rd_funct_unit2(fwd_rd_funct_unit2),
         .fwd_rd_val_funct_unit2(fwd_rd_val_funct_unit2),
+        .fwd_rd_mem(fwd_rd_mem),
+        .fwd_rd_val_mem(fwd_rd_val_mem),
         .issued_funct_unit0(issued_funct_unit0),
         .issued_funct_unit1(issued_funct_unit1),
         .issued_funct_unit2(issued_funct_unit2),
@@ -103,7 +108,8 @@ module issue_queue_tb;
         fwd_rd_val_funct_unit1 = 0;
         fwd_rd_funct_unit2 = 0;
         fwd_rd_val_funct_unit2 = 0;
-
+        fwd_rd_mem = 0;
+        fwd_rd_val_mem = 0;
         // Apply reset
         #10 reset_n = 1;
 
@@ -111,9 +117,9 @@ module issue_queue_tb;
         #10;
         fwd_enable = 1;
         fwd_rd_funct_unit0 = 6'd5;
-        fwd_rd_val_funct_unit0 = 32'hA5A5A5A5;
+        fwd_rd_val_funct_unit0 = 32'hCAFEBABE;
         fwd_rd_funct_unit1 = 6'd7;
-        fwd_rd_val_funct_unit1 = 32'h5A5A5A5A;
+        fwd_rd_val_funct_unit1 = 32'hDEADBEEF;
         fwd_rd_funct_unit2 = 6'd9;
         fwd_rd_val_funct_unit2 = 32'hFFFFFFFF;
 
@@ -122,9 +128,9 @@ module issue_queue_tb;
         write_enable = 1;
         phys_rd = 6'd10;
         phys_rs1 = 6'd5;
-        phys_rs1_val = 32'hDEADBEEF;
+        phys_rs1_val = 32'd0;
         phys_rs2 = 6'd5;
-        phys_rs2_val = 32'hCAFEBABE;
+        phys_rs2_val = 32'd0;
         funct3 = 3'b101;
         funct7 = 7'b0101010;
         opcode = 7'b1100110;
