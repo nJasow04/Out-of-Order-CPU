@@ -1,4 +1,4 @@
-`include "instruction_rom.v"  
+//`include "instruction_rom.v"  
 
 module fetch (
     input clk,
