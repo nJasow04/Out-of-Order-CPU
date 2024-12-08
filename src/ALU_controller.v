@@ -25,7 +25,7 @@ module ALU_controller (
             
             // U-type instruction (LUI)
             2'b01: begin 
-                ALUControl = 4'b1111; // Load Upper Immediate, don't need ALU
+                ALUControl = 4'b1000; // Load Upper Immediate
             end
 
             // R-type instructions (ADD, XOR)

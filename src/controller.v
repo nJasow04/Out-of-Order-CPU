@@ -53,6 +53,7 @@ module controller (
 				 ALUOp = 2'b01; // No alu
 				 LoadUpper = 1; // Enable loading upper immediate
 				 RegWrite = 1;  // Register write enabled for LUI
+				 ALUSrc = 1;
 			end
 			default: begin
 				 // Default case for unknown opcodes, do nothing
