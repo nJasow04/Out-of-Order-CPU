@@ -86,7 +86,7 @@ module issue_queue (
     reg [ENTRY_SIZE-1:0] issued_instruction [2:0];
 
     // array of regs holding ready instructions
-    reg [3:0] instruction_ready;
+    reg [2:0] instruction_ready;
 
     integer i;
 
@@ -173,7 +173,7 @@ module issue_queue (
             
             // Reset all logic
             for (i = 0; i < NUM_INSTRUCTIONS; i = i + 1) begin
-                issue_queue[i] <= {ENTRY_SIZE{1'b0}}; // TODO: to test: fill with $random
+                issue_queue[i] <= {ENTRY_SIZE{1'b0}}; 
             end
 
             register_file_scoreboard <= {NUM_PHYSICAL_REGS{1'b1}};
@@ -201,7 +201,7 @@ module issue_queue (
             // CREATE ENTRY
             if (write_enable && !issue_queue_full) begin
                 
-                register_file_scoreboard[phys_rd] <= 1'b0; // set dest reg as in use on dispatch
+                register_file_scoreboard[phys_rd] <= 1'b0; // set dest reg as in use on dispatch (TODO: SW OPERATIONS DO NOT HAVE DEST REGS)
 
                 issue_queue[free_entry] <= {
                     funct3, funct7, opcode, 
@@ -230,47 +230,36 @@ module issue_queue (
                     if (rs1_fwd_entry_0 == issue_queue[i][109:78]) begin
                         issue_queue[rs1_fwd_entry_0][109:78] <= fwd_rd_val_funct_unit0;
                         src1_ready[rs1_fwd_entry_0] <= 1'b1;
-                        $display("Forward reg 1: %d", rs1_fwd_entry_0);
                     end
                     else if (rs1_fwd_entry_1 == issue_queue[i][109:78]) begin
                         issue_queue[rs1_fwd_entry_1][109:78] <= fwd_rd_val_funct_unit1;
                         src1_ready[rs1_fwd_entry_1] <= 1'b1;
-                        $display("Forward reg 1: %d", rs1_fwd_entry_1);
                     end
                     else if (rs1_fwd_entry_2 == issue_queue[i][109:78]) begin
                         issue_queue[rs1_fwd_entry_2][109:78] <= fwd_rd_val_funct_unit2;
                         src1_ready[rs1_fwd_entry_2] <= 1'b1;
-                        $display("Forward reg 1: %d", rs1_fwd_entry_2);
                     end
                     else if (rs1_fwd_entry_mem == issue_queue[i][109:78]) begin
                         issue_queue[rs1_fwd_entry_mem][109:78] <= fwd_rd_val_mem;
                         src1_ready[rs1_fwd_entry_mem] <= 1'b1;
-                        $display("Forward reg 1: %d", rs1_fwd_entry_mem);
                     end
 
                     // rs2
                     if (rs2_fwd_entry_0 == issue_queue[i][71:40]) begin
                         issue_queue[rs2_fwd_entry_0][71:40] <= fwd_rd_val_funct_unit0;
                         src2_ready[rs2_fwd_entry_0] <= 1'b1;
-
-                        $display("Forward reg 2: %d", rs2_fwd_entry_0);
                     end
                     else if (rs2_fwd_entry_1 == issue_queue[i][71:40]) begin
                         issue_queue[rs2_fwd_entry_1][71:40] <= fwd_rd_val_funct_unit1;
                         src2_ready[rs2_fwd_entry_1] <= 1'b1;
-
-                        $display("Forward reg 2: %d", rs2_fwd_entry_1);
                     end
                     else if (rs2_fwd_entry_2 == issue_queue[i][71:40]) begin
                         issue_queue[rs2_fwd_entry_2][71:40] <= fwd_rd_val_funct_unit2;
                         src2_ready[rs2_fwd_entry_2] <= 1'b1;
-
-                        $display("Forward reg 2: %d", rs2_fwd_entry_2);
                     end
                     else if (rs2_fwd_entry_mem == issue_queue[i][71:40]) begin
                         issue_queue[rs2_fwd_entry_mem][71:40] <= fwd_rd_mem;
                         src2_ready[rs2_fwd_entry_mem] <= 1'b1;
-                        $display("Forward reg 1: %d", rs2_fwd_entry_mem);
                     end
                 end
             end
