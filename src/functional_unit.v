@@ -1,20 +1,20 @@
 module functional_unit(
     input [138:0] issue_queue_entry,  // 139-bit instruction
-	 input enable,
+    input enable,
     output reg [31:0] result,         // ALU result
     output reg zero_flag,             // Zero flag from ALU
     output reg [5:0] dest_reg,        // Destination register
     output reg [5:0] rob_index,        // ROB entry index
-	 output reg [31:0] store_data,
-	 output reg memWrite,
-	 output reg memRead,
-	 output reg memSize,
-	 output reg regWrite
+    output reg [31:0] store_data,
+    output reg memWrite,
+    output reg memRead,
+    output reg memSize,
+    output reg regWrite
 );
 
     // Extract fields from issue queue entry
-	 wire [2:0] funct3       = issue_queue_entry[138:136];
-	 wire [6:0] funct7       = issue_queue_entry[135:129];
+    wire [2:0] funct3       = issue_queue_entry[138:136];
+    wire [6:0] funct7       = issue_queue_entry[135:129];
     wire [6:0] opcode       = issue_queue_entry[128:122];
     wire [5:0] phys_rd      = issue_queue_entry[121:116];
     wire [5:0] phys_rs1     = issue_queue_entry[115:110];
@@ -74,32 +74,32 @@ module functional_unit(
     // Process Results and Outputs
     always @(*) begin
 		 if (enable) begin
-			  result = alu_result;
-			  zero_flag = zero;
-			  dest_reg = phys_rd;
-			  rob_index = ROB_entry_index;
-			  if (MemWrite)begin
-					store_data = phys_rs2_val;
-			  end else begin
-					store_data = 'd0;
-			  end
-			  
-			  
-			  memWrite = MemWrite;
-			  memRead = MemRead;
-			  memSize= MemSize;
-			  regWrite = RegWrite;
-		  end else begin
-				result = 'd0;
-			  zero_flag = 'd0;
-			  dest_reg = 'd0;
-			  rob_index = 'd0;
-			  store_data = 'd0;
-			  memWrite = 'd0;
-			  memRead = 'd0;
-			  memSize= 'd0;
-			  regWrite = 'd0;
-		  end
+            result = alu_result;
+            zero_flag = zero;
+            dest_reg = phys_rd;
+            rob_index = ROB_entry_index;
+            if (MemWrite)begin
+                store_data = phys_rs2_val;
+            end else begin
+                store_data = 'd0;
+            end
+            
+            memWrite = MemWrite;
+            memRead = MemRead;
+            memSize= MemSize;
+            regWrite = RegWrite;
+        end 
+        else begin
+            result = 'd0;
+            zero_flag = 'd0;
+            dest_reg = 'd0;
+            rob_index = 'd0;
+            store_data = 'd0;
+            memWrite = 'd0;
+            memRead = 'd0;
+            memSize= 'd0;
+            regWrite = 'd0;
+        end
     end
 
 endmodule

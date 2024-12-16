@@ -26,37 +26,37 @@ module controller (
 		
 		case (opcode)
 			R_TYPE: begin
-				 // ADD, XOR
-				 ALUOp = 2'b10; // ALUOp for R-type (ADD, XOR)
-				 RegWrite = 1;  // Register write enabled for R-type
+				// ADD, XOR
+				ALUOp = 2'b10; // ALUOp for R-type (ADD, XOR)
+				RegWrite = 1;  // Register write enabled for R-type
 			end
 			I_TYPE: begin
-				 // ADDI, ORI, SRAI
-				 ALUOp = 2'b11; // ALUOp for I-type (ADDI, ORI, SRAI)
-				 ALUSrc = 1;    // ALU source is immediate
-				 RegWrite = 1;  // Register write enabled for I-type
+				// ADDI, ORI, SRAI
+				ALUOp = 2'b11; // ALUOp for I-type (ADDI, ORI, SRAI)
+				ALUSrc = 1;    // ALU source is immediate
+				RegWrite = 1;  // Register write enabled for I-type
 			end
 			S_TYPE: begin
-				 // SB, SW
-				 MemWrite = 1;  // Enable memory write for store instructions
-				 ALUSrc = 1;    // ALU source is immediate for store instructions
+				// SB, SW
+				MemWrite = 1;  // Enable memory write for store instructions
+				ALUSrc = 1;    // ALU source is immediate for store instructions
 			end
 			LW_TYPE: begin
-				 // LB, LW
-				 MemRead = 1;   // Enable memory read for load instructions
-				 MemtoReg = 1;  // Memory to register enabled for load instructions
-				 ALUSrc = 1;    // ALU source is immediate
-				 RegWrite = 1;  // Register write enabled for load instructions
+				// LB, LW
+				MemRead = 1;   // Enable memory read for load instructions
+				MemtoReg = 1;  // Memory to register enabled for load instructions
+				ALUSrc = 1;    // ALU source is immediate
+				RegWrite = 1;  // Register write enabled for load instructions
 			end
 			U_TYPE: begin
-				 // LUI
-				 ALUOp = 2'b01; // No alu
-				 LoadUpper = 1; // Enable loading upper immediate
-				 RegWrite = 1;  // Register write enabled for LUI
-				 ALUSrc = 1;
+				// LUI
+				ALUOp = 2'b01; // No alu
+				LoadUpper = 1; // Enable loading upper immediate
+				RegWrite = 1;  // Register write enabled for LUI
+				ALUSrc = 1;
 			end
 			default: begin
-				 // Default case for unknown opcodes, do nothing
+				// Default case for unknown opcodes, do nothing
 			end
 			
 		endcase

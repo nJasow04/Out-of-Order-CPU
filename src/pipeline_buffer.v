@@ -10,8 +10,8 @@ module pipeline_buffer (
         if (!reset_n)
             data_out <= 32'd0;
 		  else if(stall) begin
-				data_out <= data_out;
-		  end
+			data_out <= data_out;
+		end
         else begin
             data_out <= data_in;
         end

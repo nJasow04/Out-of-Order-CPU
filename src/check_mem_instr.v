@@ -5,7 +5,7 @@ module check_mem_instr (
     output reg is_store,      // High if it's a store instruction
     output reg is_byte,       // High if it's byte-level
     output reg is_word,       // High if it's word-level
-	 output reg is_instr
+    output reg is_instr
 );
 
     always @(*) begin
@@ -14,7 +14,7 @@ module check_mem_instr (
         is_store = 0;
         is_byte = 0;
         is_word = 0;
-		  is_instr = 0;
+        is_instr = 0;
 
         case (opcode)
             7'b0000011: begin
@@ -24,7 +24,7 @@ module check_mem_instr (
                     3'b010: is_word = 1;  // LW (Load Word)
                     default: begin end
                 endcase
-					 is_instr = 1;
+                is_instr = 1;
             end
 
             7'b0100011: begin
@@ -34,14 +34,14 @@ module check_mem_instr (
                     3'b010: is_word = 1;  // SW (Store Word)
                     default: begin end  
                 endcase
-					 is_instr = 1;
+                is_instr = 1;
             end
-				7'bxxxxxxx: begin //high impedence, no fetch
-					 is_load = 0;
+            7'bxxxxxxx: begin //high impedence, no fetch
+                is_load = 0;
                 is_store = 0;
                 is_byte = 0;
                 is_word = 0;
-					 is_instr = 0;
+                is_instr = 0;
 				end
 
             default: begin
@@ -50,7 +50,7 @@ module check_mem_instr (
                 is_store = 0;
                 is_byte = 0;
                 is_word = 0;
-					 is_instr = 1;
+                is_instr = 1;
             end
         endcase
     end

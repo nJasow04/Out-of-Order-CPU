@@ -111,16 +111,16 @@ module issue_queue (
                 free_entry = i;
             end
         end
-		  if (fwd_rs1_enable) begin
-				rs1_val = fwd_rs1_val;
-		  end else begin
-				rs1_val = phys_rs1_val;
-		  end
-		  if (fwd_rs2_enable) begin
-				rs2_val = fwd_rs2_val;
-		  end else begin
-				rs2_val = phys_rs2_val;
-		  end
+        if (fwd_rs1_enable) begin
+            rs1_val = fwd_rs1_val;
+        end else begin
+            rs1_val = phys_rs1_val;
+        end
+        if (fwd_rs2_enable) begin
+            rs2_val = fwd_rs2_val;
+        end else begin
+            rs2_val = phys_rs2_val;
+        end
 	end
     // forward logic and select ready instructions logic
     always @(*) begin

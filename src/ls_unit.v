@@ -9,17 +9,17 @@ module ls_unit (
 
     input load_store_enable_funct0,
     input [31:0] address_funct0,
-	 input [31:0] store_data0,
+    input [31:0] store_data0,
     input [5:0] ROB_entry_num_funct0, // 00:LW 01:LB 10: SW 11:SB
 
     input load_store_enable_funct1,
     input [31:0] address_funct1,
-	 input [31:0] store_data1,
+    input [31:0] store_data1,
     input [5:0] ROB_entry_num_funct1,
 
     input load_store_enable_funct2,
     input [31:0] address_funct2,
-	 input [31:0] store_data2,
+    input [31:0] store_data2,
     input [5:0] ROB_entry_num_funct2,
 	 
 	 //input retire_enable1,
@@ -34,7 +34,7 @@ module ls_unit (
 
     // ROB
     output reg enable_ROB,
-	 output reg [5:0] rob_entry_num_retire
+    output reg [5:0] rob_entry_num_retire
 );
     // memory parameters
     parameter MEM_SIZE_BYTES = 4096;
@@ -57,7 +57,7 @@ module ls_unit (
     // load store queue
     reg [ENTRY_SIZE-1:0] load_store_queue [NUM_INSTRUCTIONS-1:0] ;
     reg load_store_ready [NUM_INSTRUCTIONS-1:0];
-	 reg load_store_valid [NUM_INSTRUCTIONS-1:0];
+    reg load_store_valid [NUM_INSTRUCTIONS-1:0];
     reg [LSQ_INDEX_BITS-1:0] new_entry;
     reg [LSQ_INDEX_BITS-1:0] head_entry;
 
@@ -99,7 +99,7 @@ module ls_unit (
     reg [LSQ_INDEX_BITS-1:0] LSQ_entry0, LSQ_entry1, LSQ_entry2;
     reg load_store_ready_comb[NUM_INSTRUCTIONS-1:0];
     reg LSQ_found;
-	 reg found_load;
+    reg found_load;
     reg [LSQ_INDEX_BITS-1:0] LSQ_found_index;
     integer i,j;
 
@@ -251,102 +251,103 @@ module ls_unit (
 				// handle memory reads and writes
 			if (load_store_valid[head_entry] ==1'b0 && load_store_ready[head_entry] == 1'b1) begin
 				head_entry <= (head_entry + 1) % NUM_INSTRUCTIONS;
-			end else begin
-            if (load_store_ready[head_entry] == 1'b1) begin
-                case (load_store_queue[head_entry][77:76])
-                    LOAD_WORD : 
-                    begin
-                        // load word from memory (10 cycles)
-                        if (!mem_op_in_progress) begin
-                            mem_op_in_progress <= 1'b1;
-                            
-                            read_enable <= 1'b1;
-                            read_address <= load_store_queue[head_entry][63:32];
-                            load_byte <= 1'b0; // load word
-                        end        
-                        else if (read_valid) begin
-                            mem_op_in_progress <= 1'b0; // finish mem op
-                            read_enable <= 1'b0;
+			end 
+            else begin
+                if (load_store_ready[head_entry] == 1'b1) begin
+                    case (load_store_queue[head_entry][77:76])
+                        LOAD_WORD : 
+                        begin
+                            // load word from memory (10 cycles)
+                            if (!mem_op_in_progress) begin
+                                mem_op_in_progress <= 1'b1;
+                                
+                                read_enable <= 1'b1;
+                                read_address <= load_store_queue[head_entry][63:32];
+                                load_byte <= 1'b0; // load word
+                            end        
+                            else if (read_valid) begin
+                                mem_op_in_progress <= 1'b0; // finish mem op
+                                read_enable <= 1'b0;
 
-                            // forward value
-                            fwd_enable <= 1'b1;
-                            fwd_phys_rd <= load_store_queue[head_entry][75:70];
-                            load_data <= read_value;
+                                // forward value
+                                fwd_enable <= 1'b1;
+                                fwd_phys_rd <= load_store_queue[head_entry][75:70];
+                                load_data <= read_value;
 
-                            // enable rob: TODO: make sure it works
-									 enable_ROB <= 1'b1;
-									 //use forward value
-									 rob_entry_num_retire <= load_store_queue[head_entry][69:64];
-									 load_store_valid[head_entry] <= 1'b0;
-                            head_entry <= (head_entry + 1) % NUM_INSTRUCTIONS;  //may have separare retire loop, also set valid to 0
+                                // enable rob: TODO: make sure it works
+                                        enable_ROB <= 1'b1;
+                                        //use forward value
+                                        rob_entry_num_retire <= load_store_queue[head_entry][69:64];
+                                        load_store_valid[head_entry] <= 1'b0;
+                                head_entry <= (head_entry + 1) % NUM_INSTRUCTIONS;  //may have separare retire loop, also set valid to 0
+                            end
                         end
-                    end
-                    LOAD_BYTE : 
-                    begin
-                        // load byte from memory
-                        if (!mem_op_in_progress) begin
-                            mem_op_in_progress <= 1'b1;
-                            
-                            read_enable <= 1'b1;
-                            read_address <= load_store_queue[head_entry][63:32];
-                            load_byte <= 1'b1; // load byte
-                        end        
-                        else if (read_valid) begin
-                            mem_op_in_progress <= 1'b0; // finish mem op
-                            read_enable <= 1'b0;
+                        LOAD_BYTE : 
+                        begin
+                            // load byte from memory
+                            if (!mem_op_in_progress) begin
+                                mem_op_in_progress <= 1'b1;
+                                
+                                read_enable <= 1'b1;
+                                read_address <= load_store_queue[head_entry][63:32];
+                                load_byte <= 1'b1; // load byte
+                            end        
+                            else if (read_valid) begin
+                                mem_op_in_progress <= 1'b0; // finish mem op
+                                read_enable <= 1'b0;
 
-                            // forward value
-                            fwd_enable <= 1'b1;
-                            fwd_phys_rd <= load_store_queue[head_entry][75:70];
-                            load_data <= { 24'b0, read_value[7:0] };
-									 
-									 enable_ROB <= 1'b1;
-									 rob_entry_num_retire <= load_store_queue[head_entry][69:64];
-									 load_store_valid[head_entry] <= 1'b0;
-                            head_entry <= (head_entry + 1) % NUM_INSTRUCTIONS;
-                        end 
-                    end
-                    STORE_WORD :
-                    begin
-                        // writes always go to memory
-                        if (!mem_op_in_progress) begin
-                            mem_op_in_progress <= 1'b1;
-                            write_enable <= 1'b1;
-                            write_address <= load_store_queue[head_entry][63:32];
-                            write_value <= load_store_queue[head_entry][31:0];
-                            store_byte <= 1'b0; // Store word
+                                // forward value
+                                fwd_enable <= 1'b1;
+                                fwd_phys_rd <= load_store_queue[head_entry][75:70];
+                                load_data <= { 24'b0, read_value[7:0] };
+                                        
+                                        enable_ROB <= 1'b1;
+                                        rob_entry_num_retire <= load_store_queue[head_entry][69:64];
+                                        load_store_valid[head_entry] <= 1'b0;
+                                head_entry <= (head_entry + 1) % NUM_INSTRUCTIONS;
+                            end 
                         end
-                        else if (write_valid) begin    
-								
-                            mem_op_in_progress <= 1'b0;
-									 write_enable <= 1'b0;
-									 enable_ROB <= 1'b1;
-									 rob_entry_num_retire <= load_store_queue[head_entry][69:64];
-									 load_store_valid[head_entry] <= 1'b0;
-                            head_entry <= (head_entry + 1) % NUM_INSTRUCTIONS;
+                        STORE_WORD :
+                        begin
+                            // writes always go to memory
+                            if (!mem_op_in_progress) begin
+                                mem_op_in_progress <= 1'b1;
+                                write_enable <= 1'b1;
+                                write_address <= load_store_queue[head_entry][63:32];
+                                write_value <= load_store_queue[head_entry][31:0];
+                                store_byte <= 1'b0; // Store word
+                            end
+                            else if (write_valid) begin    
+                                    
+                                mem_op_in_progress <= 1'b0;
+                                        write_enable <= 1'b0;
+                                        enable_ROB <= 1'b1;
+                                        rob_entry_num_retire <= load_store_queue[head_entry][69:64];
+                                        load_store_valid[head_entry] <= 1'b0;
+                                head_entry <= (head_entry + 1) % NUM_INSTRUCTIONS;
+                            end
                         end
-                    end
-                    STORE_BYTE :
-                    begin
-                        if (!mem_op_in_progress) begin
-                            mem_op_in_progress <= 1'b1;
-                            write_enable <= 1'b1;
-                            write_address <= load_store_queue[head_entry][63:32];
-                            write_value <= { 24'b0, load_store_queue[head_entry][7:0]};
-                            store_byte <= 1'b1; // Store byte
+                        STORE_BYTE :
+                        begin
+                            if (!mem_op_in_progress) begin
+                                mem_op_in_progress <= 1'b1;
+                                write_enable <= 1'b1;
+                                write_address <= load_store_queue[head_entry][63:32];
+                                write_value <= { 24'b0, load_store_queue[head_entry][7:0]};
+                                store_byte <= 1'b1; // Store byte
+                            end
+                            else if (write_valid) begin
+                                mem_op_in_progress <= 1'b0;
+                                        write_enable <= 1'b0;
+                                        enable_ROB <= 1'b1;
+                                        rob_entry_num_retire <= load_store_queue[head_entry][69:64];
+                                        load_store_valid[head_entry] <= 1'b0;
+                                head_entry <= (head_entry + 1) % NUM_INSTRUCTIONS;
+                            end
                         end
-                        else if (write_valid) begin
-                            mem_op_in_progress <= 1'b0;
-									 write_enable <= 1'b0;
-									 enable_ROB <= 1'b1;
-									 rob_entry_num_retire <= load_store_queue[head_entry][69:64];
-									 load_store_valid[head_entry] <= 1'b0;
-                            head_entry <= (head_entry + 1) % NUM_INSTRUCTIONS;
-                        end
-                    end
-                endcase
-            end
-				end
+                    endcase
+                end
+			end
         end
     end
 

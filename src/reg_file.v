@@ -15,23 +15,25 @@ module reg_file(
 
     // Define the register file (32 registers, 32-bit wide)
     reg [31:0] registers [0:31];
-	 reg prev_RegWrite1;
-	 reg prev_RegWrite2;
+    reg prev_RegWrite1;
+    reg prev_RegWrite2;
 
     // Read register data (asynchronous read)
     always @(*) begin
         rs1_data = (rs1 == 5'b00000) ? 32'b0 : registers[rs1]; // x0 is always 0
         rs2_data = (rs2 == 5'b00000) ? 32'b0 : registers[rs2]; // x0 is always 0
-		  if(RegWrite1)begin
-				prev_RegWrite1 = RegWrite1;
-		  end else begin
-				prev_RegWrite1 = 0;
-		  end
-		  if(RegWrite2)begin
+		if(RegWrite1)begin
+			prev_RegWrite1 = RegWrite1;
+		end else 
+        begin
+			prev_RegWrite1 = 0;
+		end
+		if(RegWrite2)begin
 				prev_RegWrite2 = RegWrite2;
-		  end else begin
-				prev_RegWrite2 = 0;
-		  end
+		end 
+        else begin
+			prev_RegWrite2 = 0;
+		end
     end
 
     integer i;
