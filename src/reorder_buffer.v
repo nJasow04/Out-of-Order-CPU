@@ -7,6 +7,8 @@ module reorder_buffer(
     input [5:0] alloc_dest,
     input [5:0] alloc_oldDest,
 	 input [4:0] alloc_archDest,
+	 
+	 
     output wire alloc_ready, // Indicates if allocation is possible
 	 output reg [5:0] rob_entry_num,
     
@@ -23,7 +25,16 @@ module reorder_buffer(
 	 input [5:0] writeback_idx4, // Writeback ROB location
     input [31:0] writeback_value4,
     
-    output reg commit_valid_1, // Overall commit status
+	 //rob forwarding to issue queue
+	 input [5:0] phys_rs1,
+	 input [5:0] phys_rs2,
+	 output reg forward_rs1_valid,
+	 output reg forward_rs2_valid,
+	 output reg [31:0] rob_forward_data_rs1,
+	 output reg [31:0] rob_forward_data_rs2,
+	 //output reg 5:0] rob_retire_entry_1,
+	 //output reg 5:0] rob_retire_entry_2,
+	 output reg commit_valid_1, // Overall commit status
 	 output reg commit_valid_2,
     output reg [5:0] commit_dest_1,
     output reg [5:0] free_oldDest_1,
@@ -67,7 +78,22 @@ module reorder_buffer(
         free_oldDest_2 = 6'b111111;
         commit_value_2 = 32'b0;
 		  rob_entry_num = tail;
-
+		  
+		  forward_rs1_valid = 0;
+		  forward_rs2_valid = 0;
+		  rob_forward_data_rs1 = 32'b0;
+		  rob_forward_data_rs2 = 32'b0;
+			
+		  for(i=0;i<64;i=i+1) begin
+				if(forward_rs1_valid==1'b0 && rob_dest[i] == phys_rs1 &&rob_valid[i] && rob_result_ready[i]) begin
+					forward_rs1_valid = 1'b1;
+					rob_forward_data_rs1 = rob_value[i];
+				end
+				if(forward_rs2_valid==1'b0 && rob_dest[i] == phys_rs2 &&rob_valid[i] && rob_result_ready[i]) begin
+					forward_rs2_valid = 1'b1;
+					rob_forward_data_rs2 = rob_value[i];
+				end
+		  end
 
 
         // Commit logic (up to 2)
@@ -77,6 +103,7 @@ module reorder_buffer(
             free_oldDest_1 = rob_oldDest[head];
             commit_value_1 = rob_value[head];
 				commit_archDest_1 = rob_archDest[head];
+				//rob_retire_entry_1 = head;
 
             // Check second instruction
             if (rob_valid[(head + 1) % 64] && rob_result_ready[(head + 1) % 64]) begin
@@ -85,6 +112,7 @@ module reorder_buffer(
                 free_oldDest_2 = rob_oldDest[(head + 1) % 64];
                 commit_value_2 = rob_value[(head + 1) % 64];
 					 commit_archDest_2 = rob_archDest[(head + 1) % 64];
+					 //rob_retire_entry_2 = (head + 1) % 64;
             end
         end
     end
@@ -120,39 +148,31 @@ module reorder_buffer(
 				
 
             // Writeback
-            if (writeback_valid1) begin
-					for (i = 0; i < 64; i = i + 1) begin
-						if (rob_dest[i]==writeback_idx1 && rob_valid[i])begin
-							rob_result_ready[i] <= 1;
-							rob_value[i] <= writeback_value1;
-						end
-					end
-				end
-				if (writeback_valid2) begin
-					 for (i = 0; i < 64; i = i + 1) begin
-						  if (rob_dest[i] == writeback_idx2 && rob_valid[i]) begin
-								rob_result_ready[i] <= 1;
-								rob_value[i] <= writeback_value2;
+            if (writeback_valid1) begin          //changing to use rob_index not dest reg could also change all of the writebacks
+						  if (rob_valid[writeback_idx1] ) begin
+								rob_result_ready[writeback_idx1] <= 1;
+								rob_value[writeback_idx1] <= writeback_value1;
 						  end
-					 end
+				end
+				if (writeback_valid2) begin          //changing to use rob_index not dest reg could also change all of the writebacks
+						  if (rob_valid[writeback_idx2] ) begin
+								rob_result_ready[writeback_idx2] <= 1;
+								rob_value[writeback_idx2] <= writeback_value2;
+						  end
 				end
 
-				if (writeback_valid3) begin
-					 for (i = 0; i < 64; i = i + 1) begin
-						  if (rob_dest[i] == writeback_idx3 && rob_valid[i] ) begin
-								rob_result_ready[i] <= 1;
-								rob_value[i] <= writeback_value3;
+				if (writeback_valid3) begin          //changing to use rob_index not dest reg could also change all of the writebacks
+						  if (rob_valid[writeback_idx3] ) begin
+								rob_result_ready[writeback_idx3] <= 1;
+								rob_value[writeback_idx3] <= writeback_value3;
 						  end
-					 end
 				end
 
-				if (writeback_valid4) begin
-					 for (i = 0; i < 64; i = i + 1) begin
-						  if (rob_dest[i] == writeback_idx4 && rob_valid[i] ) begin
-								rob_result_ready[i] <= 1;
-								rob_value[i] <= writeback_value4;
+				if (writeback_valid4) begin          //changing to use rob_index not dest reg could also change all of the writebacks
+						  if (rob_valid[writeback_idx4] ) begin
+								rob_result_ready[writeback_idx4] <= 1;
+								rob_value[writeback_idx4] <= writeback_value4;
 						  end
-					 end
 				end
 
             // Commit up to two instructions

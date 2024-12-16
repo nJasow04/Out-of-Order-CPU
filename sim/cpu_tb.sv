@@ -19,7 +19,7 @@ module cpu_tb ();
     initial begin
         #50 reset_n = 1; 
         	
-        repeat (30) @(posedge clk);
+        repeat (100) @(posedge clk);
 
         $stop();
     end
