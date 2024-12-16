@@ -179,6 +179,16 @@ module cpu_top
     wire [5:0] rob_entry_num_retire, fwd_phys_rd;
     wire fwd_enable_ls;
 	 
+	 //inputs for forward iq
+	 reg [5:0] fwd_dest0;
+	 reg [5:0] fwd_dest1;
+	 reg [5:0] fwd_dest2;
+	 reg [5:0] fwd_dest_mem;
+	 reg [31:0] fwd_val0;
+	 reg [31:0] fwd_val1;
+	 reg [31:0] fwd_val2;
+	 reg [31:0] fwd_val_mem;
+	 reg fwd_double;
 
 	issue_queue issue_queue_inst(
     	.clk(clk),
@@ -198,13 +208,14 @@ module cpu_top
     	.ROB_entry_index(rob_entry_num),
 
     // execute stage: forward and funct unit available
+		.fwd_double(fwd_double),
 		.fwd_enable((complete_valid0|complete_valid1|complete_valid2|fwd_enable_ls)), //later
-      .fwd_rd_funct_unit0(dest_reg0_pipe),
-      .fwd_rd_val_funct_unit0(result0_pipe), 
-      .fwd_rd_funct_unit1(dest_reg1_pipe), 
-      .fwd_rd_val_funct_unit1(result1_pipe),
-      .fwd_rd_funct_unit2(dest_reg2_pipe), 
-      .fwd_rd_val_funct_unit2(result2_pipe),
+      .fwd_rd_funct_unit0(fwd_dest0),
+      .fwd_rd_val_funct_unit0(fwd_val0), 
+      .fwd_rd_funct_unit1(fwd_dest1), 
+      .fwd_rd_val_funct_unit1(fwd_val1),
+      .fwd_rd_funct_unit2(fwd_dest2), 
+      .fwd_rd_val_funct_unit2(fwd_val2),
 		.fwd_rd_mem(fwd_phys_rd),                   //later
 		.fwd_rd_val_mem(load_data),                       //later
       .issued_funct_unit0(issued_funct_unit0),
@@ -338,9 +349,9 @@ module cpu_top
     .data_out(combined_data_out)
 	 );
 	  wire [31:0] store_data0_pipe = combined_data_out[242:211];
-	  assign result0_pipe = combined_data_out[210:179];
+	  
 	  wire zero_flag0_pipe = combined_data_out[178];
-	  assign dest_reg0_pipe = combined_data_out[177:172];
+	  
 	  assign rob_index0_pipe = combined_data_out[171:166];
 	  wire memWrite0_pipe = combined_data_out[165];
 	  wire memRead0_pipe = combined_data_out[164];
@@ -348,9 +359,9 @@ module cpu_top
 	  assign regWrite0_pipe = combined_data_out[162];
 
 	  wire [31:0] store_data1_pipe = combined_data_out[161:130];
-	  assign result1_pipe = combined_data_out[129:98];
+	  
 	  wire zero_flag1_pipe = combined_data_out[97];
-	  assign dest_reg1_pipe = combined_data_out[96:91];
+	  
 	  assign rob_index1_pipe = combined_data_out[90:85];
 	  wire memWrite1_pipe = combined_data_out[84];
 	  wire memRead1_pipe = combined_data_out[83];
@@ -358,9 +369,9 @@ module cpu_top
 	  assign regWrite1_pipe = combined_data_out[81];
 	  
 	  wire [31:0] store_data2_pipe = combined_data_out[80:49];
-	  assign result2_pipe = combined_data_out[48:17];
+	  
 	  wire zero_flag2_pipe = combined_data_out[16];
-	  assign dest_reg2_pipe = combined_data_out[15:10];
+	  
 	  assign rob_index2_pipe = combined_data_out[9:4];
 	  wire memWrite2_pipe = combined_data_out[3];
 	  wire memRead2_pipe = combined_data_out[2];
@@ -376,6 +387,16 @@ module cpu_top
                     (is_store && is_byte) ? 2'b11 :  // SB
                     2'b00;
 						  
+
+		assign result0_pipe = combined_data_out[210:179];
+		assign dest_reg0_pipe = combined_data_out[177:172];
+
+		assign dest_reg1_pipe = combined_data_out[96:91];
+		assign result1_pipe = combined_data_out[129:98];
+
+		assign result2_pipe = combined_data_out[48:17];
+		assign dest_reg2_pipe = combined_data_out[15:10];
+
     
 
 	  reg mem0;
@@ -385,24 +406,48 @@ module cpu_top
 			complete_valid0 = 1'b0;
 			complete_valid1 = 1'b0;
 			complete_valid2 = 1'b0;
+			fwd_double = 1'b0;
 			mem0 = 1'b0;
 			mem1 = 1'b0;
 			mem2 = 1'b0;
+			fwd_dest0 = 6'b0;
+			fwd_val0 = 32'b0;
+			fwd_dest1 = 6'b0;
+			fwd_val1 = 32'b0;
+			fwd_dest2 = 6'b0;
+			fwd_val2 = 32'b0;
 			
 		  if (memWrite0_pipe || memRead0_pipe) begin
-				mem0 = 1'b1; 
+				mem0 = 1'b1;
+				fwd_dest0 = dest_reg0_pipe;
+				fwd_double = 1'b1;
+
+				fwd_val0 = 32'b0;
+
 		  end else if (regWrite0_pipe) begin
+				fwd_dest0 = dest_reg0_pipe;
+				fwd_val0 = result0_pipe;
 				complete_valid0 = 1'b1;
 		  end
 		  if (memWrite1_pipe || memRead1_pipe) begin
 				mem1 = 1'b1;
+				fwd_dest1 = dest_reg1_pipe;
+				fwd_double = 1'b1;
+				fwd_val1 = 32'b0;
 		  end else if (regWrite1_pipe) begin
 				complete_valid1 = 1'b1;
+				fwd_dest1 = dest_reg1_pipe;
+				fwd_val1 = result1_pipe;
 		  end
 		  if (memWrite2_pipe || memRead2_pipe) begin
 				mem2 = 1'b1;
+				fwd_dest2 = dest_reg2_pipe;
+				fwd_double = 1'b1;
+				fwd_val2 = 32'b0;
 		  end else if (regWrite2_pipe) begin
 				complete_valid2 = 1'b1;
+				fwd_dest2 = dest_reg2_pipe;
+				fwd_val2 = result2_pipe;
 		  end
 	  end
 	  

@@ -99,8 +99,9 @@ module ls_unit (
     reg [LSQ_INDEX_BITS-1:0] LSQ_entry0, LSQ_entry1, LSQ_entry2;
     reg load_store_ready_comb[NUM_INSTRUCTIONS-1:0];
     reg LSQ_found;
+	 reg found_load;
     reg [LSQ_INDEX_BITS-1:0] LSQ_found_index;
-    integer i;
+    integer i,j;
 
     // combination logic to match correct load store queue entry to address computed by the functional unit
     always @(*) begin
@@ -209,36 +210,42 @@ module ls_unit (
 				
 				
 				LSQ_found = 1'b0;
+				found_load = 1'b0;
 				LSQ_found_index = INVALID_ENTRY;
-
+				
+				//find first load
+				for(j=0;j<new_entry;j=j+1)begin
+				
 			  // iterator starts at most recent entry in the load store queue
-			  current_index = (new_entry == 0) ? NUM_INSTRUCTIONS-1 : new_entry -1;
+				  current_index = (j == 0) ? NUM_INSTRUCTIONS-1 : j -1;
 
-			  if (load_store_ready[new_entry-1] == 1'b1) begin
-					for (i = 0; i < NUM_INSTRUCTIONS; i = i + 1) begin
-						 if (load_store_queue[new_entry-1][77] == 1'b0 && load_store_queue[new_entry-1][63:32] == load_store_queue[current_index][63:32] && load_store_queue[current_index][77] == 1'b1 && !LSQ_found) begin
-							  LSQ_found = 1'b1;
-							  LSQ_found_index = current_index;
-						 end
-					// wrap around when at 0
-					current_index = (current_index == 0) ? NUM_INSTRUCTIONS -1: current_index-1;
-					end
-					if(load_store_queue[new_entry-1][77] == 1'b0) begin 
-						if (LSQ_found) begin
-							 fwd_enable <= 1'b1;
-							 enable_ROB <= 1'b1;
-							 fwd_phys_rd <= load_store_queue[new_entry-1][75:70];
-							 if(load_store_queue[new_entry-1][76] == 1'b0) begin 
-									load_data <= load_store_queue[LSQ_found_index][31:0];
-									$display("load data: %x",load_store_queue[LSQ_found_index][31:0]);
-							 end else begin
-									load_data <= { 24'b0, load_store_queue[LSQ_found_index][7:0]};
+				  if (found_load == 1'b0 && load_store_ready[j] == 1'b1 && load_store_queue[j][77] == 1'b0 && load_store_valid[j] == 1'b1) begin
+						for (i = 0; i < NUM_INSTRUCTIONS; i = i + 1) begin
+							 if (load_store_queue[j][77] == 1'b0 && load_store_queue[j][63:32] == load_store_queue[current_index][63:32] && load_store_queue[current_index][77] == 1'b1 && !LSQ_found) begin
+								  LSQ_found = 1'b1;
+								  LSQ_found_index = current_index;
 							 end
-							 rob_entry_num_retire <= load_store_queue[new_entry-1][69:64];
-							 new_entry <= new_entry - 1;
-							 load_store_valid[new_entry-1] <= 1'b0;
-						end 
-					end
+						// wrap around when at 0
+						current_index = (current_index == 0) ? NUM_INSTRUCTIONS -1: current_index-1;
+						end
+						if(load_store_queue[j][77] == 1'b0) begin 
+							if (LSQ_found) begin
+								 fwd_enable <= 1'b1;
+								 enable_ROB <= 1'b1;
+								 fwd_phys_rd <= load_store_queue[j][75:70];
+								 if(load_store_queue[j][76] == 1'b0) begin 
+										load_data <= load_store_queue[LSQ_found_index][31:0];
+										$display("load data: %x",load_store_queue[LSQ_found_index][31:0]);
+								 end else begin
+										load_data <= { 24'b0, load_store_queue[LSQ_found_index][7:0]};
+								 end
+								 rob_entry_num_retire <= load_store_queue[j][69:64];
+								 
+								 load_store_valid[j] <= 1'b0;
+							end 
+						end
+						found_load = 1'b1;
+				  end
 			  end
 
 				// handle memory reads and writes

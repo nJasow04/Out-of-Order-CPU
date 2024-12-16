@@ -17,6 +17,7 @@ module issue_queue (
 
     // execute stage: forward and funct unit available
     input fwd_enable, // all four forward enable signals or'd together
+	 input fwd_double,
 
     input [5:0]  fwd_rd_funct_unit0,
     input [31:0] fwd_rd_val_funct_unit0,
@@ -152,16 +153,16 @@ module issue_queue (
             if (fwd_enable && use_bits[i]) begin
                 
                 // FORWARD FUNCTIONAL UNIT 0
-                check_forward(fwd_rd_funct_unit0, 2'b00, i);
+                check_forward(fwd_rd_funct_unit0, 2'b00,fwd_double, i);
 
                 // FORWARD FUNCTIONAL UNIT 1
-                check_forward(fwd_rd_funct_unit1, 2'b01, i);
+                check_forward(fwd_rd_funct_unit1, 2'b01,fwd_double, i);
 
                 // FORWARD FUNCTIONAL UNIT 2
-                check_forward(fwd_rd_funct_unit2, 2'b10, i);
+                check_forward(fwd_rd_funct_unit2, 2'b10,fwd_double, i);
 
                 // MEMORY UNIT
-                check_forward(fwd_rd_mem, 2'b11, i);
+                check_forward(fwd_rd_mem, 2'b11, 1'b0, i);
 
             end
 
@@ -245,7 +246,13 @@ module issue_queue (
                 FU_count <= (FU_count + 1) % NUM_FUNCTIONAL_UNITS;
             end
 
-            // WAKE UP (ready by next clock cycle) and forward logic 
+            // WAKE UP (ready by next clock cycle) and forward logic
+				if(fwd_enable && !fwd_double)begin
+					register_file_scoreboard[fwd_rd_funct_unit0] <= 1'b1;
+					register_file_scoreboard[fwd_rd_funct_unit1] <= 1'b1;
+					register_file_scoreboard[fwd_rd_funct_unit2] <= 1'b1;
+					register_file_scoreboard[fwd_rd_mem] <= 1'b1;
+				end
 
             for (i = 0; i < NUM_INSTRUCTIONS; i = i + 1) begin
                 
@@ -254,57 +261,69 @@ module issue_queue (
 
                     // rs1
                     if (rs1_fwd_entry_0 == i) begin
-								register_file_scoreboard[fwd_rd_funct_unit0] <= 1'b1;
-                        issue_queue[rs1_fwd_entry_0][109:78] <= fwd_rd_val_funct_unit0;
-                        src1_ready[rs1_fwd_entry_0] <= 1'b1;
-                        $display("Forward reg 1: %d", rs1_fwd_entry_0);
+								//register_file_scoreboard[fwd_rd_funct_unit0] <= 1'b1;
+								
+								if(!fwd_double)begin
+									issue_queue[rs1_fwd_entry_0][109:78] <= fwd_rd_val_funct_unit0;
+									src1_ready[rs1_fwd_entry_0] <= 1'b1;
+								end
                     end
                     else if (rs1_fwd_entry_1 == i) begin
-								register_file_scoreboard[fwd_rd_funct_unit1] <= 1'b1;
-                        issue_queue[rs1_fwd_entry_1][109:78] <= fwd_rd_val_funct_unit1;
-                        src1_ready[rs1_fwd_entry_1] <= 1'b1;
-                        $display("Forward reg 1: %d", rs1_fwd_entry_1);
+								//register_file_scoreboard[fwd_rd_funct_unit1] <= 1'b1;
+								
+								if(!fwd_double)begin
+									issue_queue[rs1_fwd_entry_1][109:78] <= fwd_rd_val_funct_unit1;
+									src1_ready[rs1_fwd_entry_1] <= 1'b1;
+								end
                     end
                     else if (rs1_fwd_entry_2 == i) begin
-								register_file_scoreboard[fwd_rd_funct_unit2] <= 1'b1;
-                        issue_queue[rs1_fwd_entry_2][109:78] <= fwd_rd_val_funct_unit2;
-                        src1_ready[rs1_fwd_entry_2] <= 1'b1;
-                        $display("Forward reg 1: %d", rs1_fwd_entry_2);
+								//register_file_scoreboard[fwd_rd_funct_unit2] <= 1'b1;
+								
+								if(!fwd_double)begin
+									issue_queue[rs1_fwd_entry_2][109:78] <= fwd_rd_val_funct_unit2;
+									src1_ready[rs1_fwd_entry_2] <= 1'b1;
+								end
                     end
                     else if (rs1_fwd_entry_mem == i) begin
-								register_file_scoreboard[fwd_rd_mem] <= 1'b1;
-                        issue_queue[rs1_fwd_entry_mem][109:78] <= fwd_rd_val_mem;
-                        src1_ready[rs1_fwd_entry_mem] <= 1'b1;
-                        $display("Forward reg 1: %d", rs1_fwd_entry_mem);
+								//register_file_scoreboard[fwd_rd_mem] <= 1'b1;
+								
+								if(!fwd_double)begin
+									issue_queue[rs1_fwd_entry_mem][109:78] <= fwd_rd_val_mem;
+									src1_ready[rs1_fwd_entry_mem] <= 1'b1;
+								end
                     end
 
                     // rs2
                     if (rs2_fwd_entry_0 == i) begin
-							   register_file_scoreboard[fwd_rd_funct_unit0] <= 1'b1;
-                        issue_queue[rs2_fwd_entry_0][71:40] <= fwd_rd_val_funct_unit0;
-                        src2_ready[rs2_fwd_entry_0] <= 1'b1;
-
-                        $display("Forward reg 2: %d", rs2_fwd_entry_0);
+							   //register_file_scoreboard[fwd_rd_funct_unit0] <= 1'b1;
+								if(!fwd_double)begin
+									issue_queue[rs2_fwd_entry_0][71:40] <= fwd_rd_val_funct_unit0;
+									src2_ready[rs2_fwd_entry_0] <= 1'b1;
+								end
                     end
                     else if (rs2_fwd_entry_1 == i) begin
-								register_file_scoreboard[fwd_rd_funct_unit1] <= 1'b1;
-                        issue_queue[rs2_fwd_entry_1][71:40] <= fwd_rd_val_funct_unit1;
-                        src2_ready[rs2_fwd_entry_1] <= 1'b1;
-
-                        $display("Forward reg 2: %d", rs2_fwd_entry_1);
+								//register_file_scoreboard[fwd_rd_funct_unit1] <= 1'b1;
+								
+                        if(!fwd_double)begin
+									issue_queue[rs2_fwd_entry_1][71:40] <= fwd_rd_val_funct_unit1;
+									src2_ready[rs2_fwd_entry_1] <= 1'b1;
+								end
                     end
                     else if (rs2_fwd_entry_2 == i) begin
-								register_file_scoreboard[fwd_rd_funct_unit2] <= 1'b1;
-                        issue_queue[rs2_fwd_entry_2][71:40] <= fwd_rd_val_funct_unit2;
-                        src2_ready[rs2_fwd_entry_2] <= 1'b1;
-
-                        $display("Forward reg 2: %d", rs2_fwd_entry_2);
+								//register_file_scoreboard[fwd_rd_funct_unit2] <= 1'b1;
+								
+								if(!fwd_double)begin
+									issue_queue[rs2_fwd_entry_2][71:40] <= fwd_rd_val_funct_unit2;
+									src2_ready[rs2_fwd_entry_2] <= 1'b1;
+								end
                     end
                     else if (rs2_fwd_entry_mem == i) begin  //might need fix
-								register_file_scoreboard[fwd_rd_mem] <= 1'b1;
-                        issue_queue[rs2_fwd_entry_mem][71:40] <= fwd_rd_mem;
-                        src2_ready[rs2_fwd_entry_mem] <= 1'b1;
-                        $display("Forward reg 1: %d", rs2_fwd_entry_mem);
+								//register_file_scoreboard[fwd_rd_mem] <= 1'b1;
+								
+								if(!fwd_double)begin
+									issue_queue[rs2_fwd_entry_mem][71:40] <= fwd_rd_val_mem;
+									src2_ready[rs2_fwd_entry_mem] <= 1'b1;
+								end
                     end
                 end
             end
@@ -375,6 +394,7 @@ module issue_queue (
     task check_forward(
         input [5:0] fwd_rd_funct_unit,  // Functional unit to forward from
         input [1:0] fwd_unit_id,        // Identifier for the functional unit
+		  input fwd_double,
         input integer i             // Issue queue index
     );
     begin
@@ -382,9 +402,10 @@ module issue_queue (
         // Both forward
         if (issue_queue[i][115:110] == fwd_rd_funct_unit &&
             issue_queue[i][77:72] == fwd_rd_funct_unit) begin
-            src1_ready_fwd[i] = 1'b1;
-            src2_ready_fwd[i] = 1'b1;
-            
+				if(!fwd_double)begin
+					src1_ready_fwd[i] = 1'b1;
+					src2_ready_fwd[i] = 1'b1;
+            end
             case (fwd_unit_id)
                 2'b00: begin rs1_fwd_entry_0 = i; rs2_fwd_entry_0 = i; end
                 2'b01: begin rs1_fwd_entry_1 = i; rs2_fwd_entry_1 = i; end
@@ -395,8 +416,9 @@ module issue_queue (
         end
         // rs1 forward
         else if (issue_queue[i][115:110] == fwd_rd_funct_unit) begin
-            src1_ready_fwd[i] = 1'b1;
-
+            if(!fwd_double)begin
+					src1_ready_fwd[i] = 1'b1;
+				end
             case (fwd_unit_id)
                 2'b00: rs1_fwd_entry_0 = i;
                 2'b01: rs1_fwd_entry_1 = i;
@@ -406,8 +428,9 @@ module issue_queue (
         end
         // rs2 forward
         else if (issue_queue[i][77:72] == fwd_rd_funct_unit) begin
-            src2_ready_fwd[i] = 1'b1;
-
+            if(!fwd_double)begin
+					src2_ready_fwd[i] = 1'b1;
+				end
             case (fwd_unit_id)
                 2'b00: rs2_fwd_entry_0 = i;
                 2'b01: rs2_fwd_entry_1 = i;
@@ -423,83 +446,106 @@ module issue_queue (
         input [5:0] instruction_index 
     );
     begin
+			issued_instruction[i]  = issue_queue[instruction_index];
     
         // FUNCT UNIT 0 FORWARD
 
         // both source registers forward
         if (instruction_index == rs1_fwd_entry_0 && instruction_index == rs2_fwd_entry_0) begin
-            issued_instruction[i] = issued_instruction[i] | { issue_queue[instruction_index][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit0, 
-            issue_queue[instruction_index][77:72], fwd_rd_val_funct_unit0, issue_queue[instruction_index][39:0] };
+		  
+				//issued_instruction[i]  = { issued_instruction[i][ENTRY_SIZE-1:110], 32'b0,issued_instruction[i][77:72], 32'b0, issued_instruction[i][39:0] };
+            issued_instruction[i] = {issued_instruction[i][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit0, 
+            issued_instruction[i][77:72], fwd_rd_val_funct_unit0, issued_instruction[i][39:0] };
             
         end
         // forward rs1
         else if (instruction_index == rs1_fwd_entry_0) begin
-            issued_instruction[i] = issued_instruction[i] | { issue_queue[instruction_index][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit0, issue_queue[instruction_index][77:0] };                  
+		      //issued_instruction[i]  = { issue_queue[instruction_index][ENTRY_SIZE-1:110], 32'b0, issue_queue[instruction_index][77:0] };
+            issued_instruction[i] = { issued_instruction[i][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit0, issued_instruction[i][77:0] };                  
 				
 		  end
         // forward rs2
         else if (instruction_index == rs2_fwd_entry_0) begin
-            issued_instruction[i] = issued_instruction[i] | { issue_queue[instruction_index][ENTRY_SIZE-1:72], fwd_rd_val_funct_unit0, issue_queue[instruction_index][39:0] };              
-				$display("Forwarded here! %x", fwd_rd_val_funct_unit0);
-				$display("issued %x", i);
-				$display("instruction %x", issued_instruction[i]);
+				//issued_instruction[i]  = { issue_queue[instruction_index][ENTRY_SIZE-1:72], 32'b0, issue_queue[instruction_index][39:0] };
+            issued_instruction[i] = {issued_instruction[i][ENTRY_SIZE-1:72], fwd_rd_val_funct_unit0, issued_instruction[i][39:0] };              
+
 		  end
 
         // FUNCT UNIT 1 FORWARD
 
         // both source registers forward
         if (instruction_index == rs1_fwd_entry_1 && instruction_index == rs2_fwd_entry_1) begin
-            issued_instruction[i] = issued_instruction[i] | { issue_queue[instruction_index][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit1, 
-            issue_queue[instruction_index][77:72], fwd_rd_val_funct_unit1, issue_queue[instruction_index][39:0] };
-				$display("test");
+            //issued_instruction[i]  = { issue_queue[instruction_index][ENTRY_SIZE-1:110], 32'b0,issue_queue[instruction_index][77:72], 32'b0, issue_queue[instruction_index][39:0] };
+
+				issued_instruction[i] = { issued_instruction[i][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit1, 
+            issued_instruction[i][77:72], fwd_rd_val_funct_unit1, issued_instruction[i][39:0] };
+
         end
         // forward rs1
         else if (instruction_index == rs1_fwd_entry_1) begin
-            issued_instruction[i] = issued_instruction[i] | { issue_queue[instruction_index][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit1, issue_queue[instruction_index][77:0] };                  
-				$display("test");
+            //issued_instruction[i]  = { issue_queue[instruction_index][ENTRY_SIZE-1:110], 32'b0, issue_queue[instruction_index][77:0] };
+
+            issued_instruction[i] = { issued_instruction[i][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit1, issued_instruction[i][77:0] };                  
+
 		  end
         // forward rs2
         else if (instruction_index == rs2_fwd_entry_1) begin
-            issued_instruction[i] = issued_instruction[i] | { issue_queue[instruction_index][ENTRY_SIZE-1:72], fwd_rd_val_funct_unit1, issue_queue[instruction_index][39:0] };              
-				$display("Forwarded here! %x", fwd_rd_val_funct_unit1);
+				//issued_instruction[i]  = { issue_queue[instruction_index][ENTRY_SIZE-1:72], 32'b0, issue_queue[instruction_index][39:0] };
+
+            issued_instruction[i] = {issued_instruction[i][ENTRY_SIZE-1:72], fwd_rd_val_funct_unit1, issued_instruction[i][39:0] };              
+
 		  end
 
         // FUNCT UNIT 2 FORWARD
 
         // both source registers forward
         if (instruction_index == rs1_fwd_entry_2 && instruction_index == rs2_fwd_entry_2) begin
-            issued_instruction[i] = issued_instruction[i] | { issue_queue[instruction_index][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit2, 
-            issue_queue[instruction_index][77:72], fwd_rd_val_funct_unit2, issue_queue[instruction_index][39:0] };
-				$display("test1");
+            
+				//issued_instruction[i]  = { issue_queue[instruction_index][ENTRY_SIZE-1:110], 32'b0,issue_queue[instruction_index][77:72], 32'b0, issue_queue[instruction_index][39:0] };
+
+				issued_instruction[i] = { issued_instruction[i][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit2, 
+            issued_instruction[i][77:72], fwd_rd_val_funct_unit2, issued_instruction[i][39:0] };
+
 		  end
         // forward rs1
         else if (instruction_index == rs1_fwd_entry_2) begin
-            issued_instruction[i] = issued_instruction[i] | { issue_queue[instruction_index][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit2, issue_queue[instruction_index][77:0] };                  
-				$display("test1");
+            //issued_instruction[i]  = { issue_queue[instruction_index][ENTRY_SIZE-1:110], 32'b0, issue_queue[instruction_index][77:0] };
+
+            issued_instruction[i] = { issued_instruction[i][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit2, issued_instruction[i][77:0] };                  
+
 		  end
         // forward rs2
         else if (instruction_index == rs2_fwd_entry_2) begin
-            issued_instruction[i] = issued_instruction[i] | { issue_queue[instruction_index][ENTRY_SIZE-1:72], fwd_rd_val_funct_unit2, issue_queue[instruction_index][39:0] };              
-				$display("Forwarded here! %x", fwd_rd_val_funct_unit2);
+            //issued_instruction[i]  = { issue_queue[instruction_index][ENTRY_SIZE-1:72], 32'b0, issue_queue[instruction_index][39:0] };
+
+            issued_instruction[i] = {issued_instruction[i][ENTRY_SIZE-1:72], fwd_rd_val_funct_unit2, issued_instruction[i][39:0] };              
+
 		  end
 
         // MEM UNIT FORWARD
 
         // both source registers forward
         if (instruction_index == rs1_fwd_entry_mem && instruction_index == rs2_fwd_entry_mem) begin
-            issued_instruction[i] = issued_instruction[i] | { issue_queue[instruction_index][ENTRY_SIZE-1:110], fwd_rd_val_mem, 
-            issue_queue[instruction_index][77:72], fwd_rd_val_mem, issue_queue[instruction_index][39:0] };
-				$display("test2");
+            //issued_instruction[i]  = { issue_queue[instruction_index][ENTRY_SIZE-1:110], 32'b0,issue_queue[instruction_index][77:72], 32'b0, issue_queue[instruction_index][39:0] };
+
+				issued_instruction[i] = { issued_instruction[i][ENTRY_SIZE-1:110], fwd_rd_val_mem, 
+            issued_instruction[i][77:72], fwd_rd_val_mem, issued_instruction[i][39:0] };
 		  end
         // forward rs1
         else if (instruction_index == rs1_fwd_entry_mem) begin
-            issued_instruction[i] = issued_instruction[i] | { issue_queue[instruction_index][ENTRY_SIZE-1:110], fwd_rd_val_mem, issue_queue[instruction_index][77:0] };                  
-				$display("test2");
+            //issued_instruction[i]  = { issue_queue[instruction_index][ENTRY_SIZE-1:110], 32'b0, issue_queue[instruction_index][77:0] };
+
+            issued_instruction[i] = { issued_instruction[i][ENTRY_SIZE-1:110], fwd_rd_val_mem, issued_instruction[i][77:0] };                  
+				$display("test, %x",fwd_rd_val_mem);
+				$display("dest, %x",issued_instruction[i][115:110]);
+
 		  end
         // forward rs2
         else if (instruction_index == rs2_fwd_entry_mem) begin
-            issued_instruction[i] = issued_instruction[i] | { issue_queue[instruction_index][ENTRY_SIZE-1:72], fwd_rd_val_mem, issue_queue[instruction_index][39:0] };              
-				$display("Forwarded here! %x", fwd_rd_val_mem);
+            //issued_instruction[i]  = { issue_queue[instruction_index][ENTRY_SIZE-1:72], 32'b0, issue_queue[instruction_index][39:0] };
+
+            issued_instruction[i] = {issued_instruction[i][ENTRY_SIZE-1:72], fwd_rd_val_mem, issued_instruction[i][39:0] };              
+
 		end
 
     

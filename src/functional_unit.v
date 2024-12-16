@@ -84,6 +84,7 @@ module functional_unit(
 					store_data = 'd0;
 			  end
 			  
+			  
 			  memWrite = MemWrite;
 			  memRead = MemRead;
 			  memSize= MemSize;
