@@ -5,6 +5,7 @@ module functional_unit(
     output reg zero_flag,             // Zero flag from ALU
     output reg [5:0] dest_reg,        // Destination register
     output reg [5:0] rob_index,        // ROB entry index
+	 output reg [31:0] store_data,
 	 output reg memWrite,
 	 output reg memRead,
 	 output reg memSize,
@@ -77,6 +78,12 @@ module functional_unit(
 			  zero_flag = zero;
 			  dest_reg = phys_rd;
 			  rob_index = ROB_entry_index;
+			  if (MemWrite)begin
+					store_data = phys_rs2_val;
+			  end else begin
+					store_data = 'd0;
+			  end
+			  
 			  memWrite = MemWrite;
 			  memRead = MemRead;
 			  memSize= MemSize;
@@ -86,6 +93,7 @@ module functional_unit(
 			  zero_flag = 'd0;
 			  dest_reg = 'd0;
 			  rob_index = 'd0;
+			  store_data = 'd0;
 			  memWrite = 'd0;
 			  memRead = 'd0;
 			  memSize= 'd0;

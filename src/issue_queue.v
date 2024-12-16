@@ -29,6 +29,11 @@ module issue_queue (
 
     input [5:0]  fwd_rd_mem,
     input [31:0] fwd_rd_val_mem,
+	 
+	 input fwd_rs1_enable,
+	 input fwd_rs2_enable,
+	 input [31:0] fwd_rs1_val,
+	 input [31:0] fwd_rs2_val,
 
     // functional unit issues
     output reg [138:0] issued_funct_unit0,
@@ -87,6 +92,9 @@ module issue_queue (
 
     // array of regs holding ready instructions
     reg [3:0] instruction_ready;
+	 
+	 reg [31:0] rs1_val;
+	 reg [31:0] rs2_val;
 
     integer i;
 	 reg prev_write_enable;
@@ -102,8 +110,17 @@ module issue_queue (
                 free_entry = i;
             end
         end
-    end
-
+		  if (fwd_rs1_enable) begin
+				rs1_val = fwd_rs1_val;
+		  end else begin
+				rs1_val = phys_rs1_val;
+		  end
+		  if (fwd_rs2_enable) begin
+				rs2_val = fwd_rs2_val;
+		  end else begin
+				rs2_val = phys_rs2_val;
+		  end
+	end
     // forward logic and select ready instructions logic
     always @(*) begin
 
@@ -144,7 +161,7 @@ module issue_queue (
                 check_forward(fwd_rd_funct_unit2, 2'b10, i);
 
                 // MEMORY UNIT
-                check_forward(fwd_rd_funct_unit2, 2'b11, i);
+                check_forward(fwd_rd_mem, 2'b11, i);
 
             end
 
@@ -202,13 +219,16 @@ module issue_queue (
 
             // CREATE ENTRY
             if (prev_write_enable && !issue_queue_full) begin
+					
+					
                 
                 register_file_scoreboard[phys_rd] <= 1'b0; // set dest reg as in use on dispatch
+					 
 
                 issue_queue[free_entry] <= {
                     funct3, funct7, opcode, 
-                    phys_rd, phys_rs1, phys_rs1_val,
-                    phys_rs2, phys_rs2_val, immediate,
+                    phys_rd, phys_rs1, rs1_val,
+                    phys_rs2, rs2_val, immediate,
                     ROB_entry_index, FU_count
                 };
                 // mark entry as used
@@ -216,8 +236,11 @@ module issue_queue (
 
                 // assign ready regs
                 src1_ready[free_entry] <= register_file_scoreboard[phys_rs1];
-                src2_ready[free_entry] <= register_file_scoreboard[phys_rs2];
-                
+					 if (opcode ==7'b0010011 || opcode == 7'b0000011) begin
+							src2_ready[free_entry] <= 1'b1;
+					 end else begin
+							src2_ready[free_entry] <= register_file_scoreboard[phys_rs2];
+                end
                 // Round robin logic: increment FU count
                 FU_count <= (FU_count + 1) % NUM_FUNCTIONAL_UNITS;
             end
@@ -227,49 +250,58 @@ module issue_queue (
             for (i = 0; i < NUM_INSTRUCTIONS; i = i + 1) begin
                 
                 if (fwd_enable && use_bits[i]==1) begin
+							
 
                     // rs1
-                    if (rs1_fwd_entry_0 == issue_queue[i][109:78]) begin
+                    if (rs1_fwd_entry_0 == i) begin
+								register_file_scoreboard[fwd_rd_funct_unit0] <= 1'b1;
                         issue_queue[rs1_fwd_entry_0][109:78] <= fwd_rd_val_funct_unit0;
                         src1_ready[rs1_fwd_entry_0] <= 1'b1;
                         $display("Forward reg 1: %d", rs1_fwd_entry_0);
                     end
-                    else if (rs1_fwd_entry_1 == issue_queue[i][109:78]) begin
+                    else if (rs1_fwd_entry_1 == i) begin
+								register_file_scoreboard[fwd_rd_funct_unit1] <= 1'b1;
                         issue_queue[rs1_fwd_entry_1][109:78] <= fwd_rd_val_funct_unit1;
                         src1_ready[rs1_fwd_entry_1] <= 1'b1;
                         $display("Forward reg 1: %d", rs1_fwd_entry_1);
                     end
-                    else if (rs1_fwd_entry_2 == issue_queue[i][109:78]) begin
+                    else if (rs1_fwd_entry_2 == i) begin
+								register_file_scoreboard[fwd_rd_funct_unit2] <= 1'b1;
                         issue_queue[rs1_fwd_entry_2][109:78] <= fwd_rd_val_funct_unit2;
                         src1_ready[rs1_fwd_entry_2] <= 1'b1;
                         $display("Forward reg 1: %d", rs1_fwd_entry_2);
                     end
-                    else if (rs1_fwd_entry_mem == issue_queue[i][109:78]) begin
+                    else if (rs1_fwd_entry_mem == i) begin
+								register_file_scoreboard[fwd_rd_mem] <= 1'b1;
                         issue_queue[rs1_fwd_entry_mem][109:78] <= fwd_rd_val_mem;
                         src1_ready[rs1_fwd_entry_mem] <= 1'b1;
                         $display("Forward reg 1: %d", rs1_fwd_entry_mem);
                     end
 
                     // rs2
-                    if (rs2_fwd_entry_0 == issue_queue[i][71:40]) begin
+                    if (rs2_fwd_entry_0 == i) begin
+							   register_file_scoreboard[fwd_rd_funct_unit0] <= 1'b1;
                         issue_queue[rs2_fwd_entry_0][71:40] <= fwd_rd_val_funct_unit0;
                         src2_ready[rs2_fwd_entry_0] <= 1'b1;
 
                         $display("Forward reg 2: %d", rs2_fwd_entry_0);
                     end
-                    else if (rs2_fwd_entry_1 == issue_queue[i][71:40]) begin
+                    else if (rs2_fwd_entry_1 == i) begin
+								register_file_scoreboard[fwd_rd_funct_unit1] <= 1'b1;
                         issue_queue[rs2_fwd_entry_1][71:40] <= fwd_rd_val_funct_unit1;
                         src2_ready[rs2_fwd_entry_1] <= 1'b1;
 
                         $display("Forward reg 2: %d", rs2_fwd_entry_1);
                     end
-                    else if (rs2_fwd_entry_2 == issue_queue[i][71:40]) begin
+                    else if (rs2_fwd_entry_2 == i) begin
+								register_file_scoreboard[fwd_rd_funct_unit2] <= 1'b1;
                         issue_queue[rs2_fwd_entry_2][71:40] <= fwd_rd_val_funct_unit2;
                         src2_ready[rs2_fwd_entry_2] <= 1'b1;
 
                         $display("Forward reg 2: %d", rs2_fwd_entry_2);
                     end
-                    else if (rs2_fwd_entry_mem == issue_queue[i][71:40]) begin
+                    else if (rs2_fwd_entry_mem == i) begin  //might need fix
+								register_file_scoreboard[fwd_rd_mem] <= 1'b1;
                         issue_queue[rs2_fwd_entry_mem][71:40] <= fwd_rd_mem;
                         src2_ready[rs2_fwd_entry_mem] <= 1'b1;
                         $display("Forward reg 1: %d", rs2_fwd_entry_mem);
@@ -346,6 +378,7 @@ module issue_queue (
         input integer i             // Issue queue index
     );
     begin
+		   
         // Both forward
         if (issue_queue[i][115:110] == fwd_rd_funct_unit &&
             issue_queue[i][77:72] == fwd_rd_funct_unit) begin
@@ -395,66 +428,79 @@ module issue_queue (
 
         // both source registers forward
         if (instruction_index == rs1_fwd_entry_0 && instruction_index == rs2_fwd_entry_0) begin
-            issued_instruction[i] = { issue_queue[instruction_index][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit0, 
+            issued_instruction[i] = issued_instruction[i] | { issue_queue[instruction_index][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit0, 
             issue_queue[instruction_index][77:72], fwd_rd_val_funct_unit0, issue_queue[instruction_index][39:0] };
-            $display("Forwarded here!");
+            
         end
         // forward rs1
         else if (instruction_index == rs1_fwd_entry_0) begin
-            issued_instruction[i] = { issue_queue[instruction_index][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit0, issue_queue[instruction_index][77:0] };                  
-        end
+            issued_instruction[i] = issued_instruction[i] | { issue_queue[instruction_index][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit0, issue_queue[instruction_index][77:0] };                  
+				
+		  end
         // forward rs2
         else if (instruction_index == rs2_fwd_entry_0) begin
-            issued_instruction[i] = { issue_queue[instruction_index][ENTRY_SIZE-1:72], fwd_rd_val_funct_unit0, issue_queue[instruction_index][39:0] };              
-        end
+            issued_instruction[i] = issued_instruction[i] | { issue_queue[instruction_index][ENTRY_SIZE-1:72], fwd_rd_val_funct_unit0, issue_queue[instruction_index][39:0] };              
+				$display("Forwarded here! %x", fwd_rd_val_funct_unit0);
+				$display("issued %x", i);
+				$display("instruction %x", issued_instruction[i]);
+		  end
 
         // FUNCT UNIT 1 FORWARD
 
         // both source registers forward
         if (instruction_index == rs1_fwd_entry_1 && instruction_index == rs2_fwd_entry_1) begin
-            issued_instruction[i] = { issue_queue[instruction_index][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit1, 
+            issued_instruction[i] = issued_instruction[i] | { issue_queue[instruction_index][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit1, 
             issue_queue[instruction_index][77:72], fwd_rd_val_funct_unit1, issue_queue[instruction_index][39:0] };
+				$display("test");
         end
         // forward rs1
         else if (instruction_index == rs1_fwd_entry_1) begin
-            issued_instruction[i] = { issue_queue[instruction_index][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit1, issue_queue[instruction_index][77:0] };                  
-        end
+            issued_instruction[i] = issued_instruction[i] | { issue_queue[instruction_index][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit1, issue_queue[instruction_index][77:0] };                  
+				$display("test");
+		  end
         // forward rs2
         else if (instruction_index == rs2_fwd_entry_1) begin
-            issued_instruction[i] = { issue_queue[instruction_index][ENTRY_SIZE-1:72], fwd_rd_val_funct_unit1, issue_queue[instruction_index][39:0] };              
-        end
+            issued_instruction[i] = issued_instruction[i] | { issue_queue[instruction_index][ENTRY_SIZE-1:72], fwd_rd_val_funct_unit1, issue_queue[instruction_index][39:0] };              
+				$display("Forwarded here! %x", fwd_rd_val_funct_unit1);
+		  end
 
         // FUNCT UNIT 2 FORWARD
 
         // both source registers forward
         if (instruction_index == rs1_fwd_entry_2 && instruction_index == rs2_fwd_entry_2) begin
-            issued_instruction[i] = { issue_queue[instruction_index][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit2, 
+            issued_instruction[i] = issued_instruction[i] | { issue_queue[instruction_index][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit2, 
             issue_queue[instruction_index][77:72], fwd_rd_val_funct_unit2, issue_queue[instruction_index][39:0] };
-        end
+				$display("test1");
+		  end
         // forward rs1
         else if (instruction_index == rs1_fwd_entry_2) begin
-            issued_instruction[i] = { issue_queue[instruction_index][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit2, issue_queue[instruction_index][77:0] };                  
-        end
+            issued_instruction[i] = issued_instruction[i] | { issue_queue[instruction_index][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit2, issue_queue[instruction_index][77:0] };                  
+				$display("test1");
+		  end
         // forward rs2
         else if (instruction_index == rs2_fwd_entry_2) begin
-            issued_instruction[i] = { issue_queue[instruction_index][ENTRY_SIZE-1:72], fwd_rd_val_funct_unit2, issue_queue[instruction_index][39:0] };              
-        end
+            issued_instruction[i] = issued_instruction[i] | { issue_queue[instruction_index][ENTRY_SIZE-1:72], fwd_rd_val_funct_unit2, issue_queue[instruction_index][39:0] };              
+				$display("Forwarded here! %x", fwd_rd_val_funct_unit2);
+		  end
 
         // MEM UNIT FORWARD
 
         // both source registers forward
         if (instruction_index == rs1_fwd_entry_mem && instruction_index == rs2_fwd_entry_mem) begin
-            issued_instruction[i] = { issue_queue[instruction_index][ENTRY_SIZE-1:110], fwd_rd_val_mem, 
+            issued_instruction[i] = issued_instruction[i] | { issue_queue[instruction_index][ENTRY_SIZE-1:110], fwd_rd_val_mem, 
             issue_queue[instruction_index][77:72], fwd_rd_val_mem, issue_queue[instruction_index][39:0] };
-        end
+				$display("test2");
+		  end
         // forward rs1
         else if (instruction_index == rs1_fwd_entry_mem) begin
-            issued_instruction[i] = { issue_queue[instruction_index][ENTRY_SIZE-1:110], fwd_rd_val_mem, issue_queue[instruction_index][77:0] };                  
-        end
+            issued_instruction[i] = issued_instruction[i] | { issue_queue[instruction_index][ENTRY_SIZE-1:110], fwd_rd_val_mem, issue_queue[instruction_index][77:0] };                  
+				$display("test2");
+		  end
         // forward rs2
         else if (instruction_index == rs2_fwd_entry_mem) begin
-            issued_instruction[i] = { issue_queue[instruction_index][ENTRY_SIZE-1:72], fwd_rd_val_mem, issue_queue[instruction_index][39:0] };              
-        end
+            issued_instruction[i] = issued_instruction[i] | { issue_queue[instruction_index][ENTRY_SIZE-1:72], fwd_rd_val_mem, issue_queue[instruction_index][39:0] };              
+				$display("Forwarded here! %x", fwd_rd_val_mem);
+		end
 
     
     end
@@ -488,398 +534,3 @@ Note: I opted to put use bit in a different container to simplify the logic and 
 $clog2: calculates ceiling log based 2 function 
 
 */
-
-//module issue_queue (
-//    input clk,
-//    input reset_n,
-//    input write_enable, // reg read valid
-//
-//    // rename stage: source and destination regs
-//    input [5:0]  phys_rd,
-//    input [5:0]  phys_rs1,
-//    input [31:0] phys_rs1_val,
-//    input [5:0]  phys_rs2,
-//    input [31:0] phys_rs2_val,
-//    input [6:0]  opcode,
-//	 input [2:0] funct3,
-//	 input [6:0] funct7,
-//    input [31:0] immediate,
-//    input [5:0]  ROB_entry_index,
-//
-//    // execute stage: forward and funct unit available
-//    input fwd_enable, // all four forward enable signals or'd together
-//
-//    input [5:0]  fwd_rd_funct_unit0,
-//    input [31:0] fwd_rd_val_funct_unit0,
-//
-//    input [5:0]  fwd_rd_funct_unit1,
-//    input [31:0] fwd_rd_val_funct_unit1,
-//    
-//    input [5:0]  fwd_rd_funct_unit2,
-//    input [31:0] fwd_rd_val_funct_unit2,
-//
-//    output reg [138:0] issued_funct_unit0,
-//    output reg [138:0] issued_funct_unit1,
-//    output reg [138:0] issued_funct_unit2,
-//
-//    output reg funct0_enable,
-//    output reg funct1_enable,
-//    output reg funct2_enable,
-//
-//    output issue_queue_full
-//);
-//    // Issue Queue constants
-//    parameter NUM_FUNCTIONAL_UNITS = 3;
-//    parameter NUM_PHYSICAL_REGS = 64;
-//    parameter NUM_INSTRUCTIONS = 64; 
-//    parameter IQ_INDEX_BITS = $clog2(NUM_INSTRUCTIONS);
-//    
-//    parameter ENTRY_SIZE = 129;
-//    parameter INVALID_ENTRY = 6'b111111;
-//    parameter INVALID_ISSUE_QUEUE_ENTRY = 6'd0;
-//
-//    // Register and Functional Unit scoreboards - 1: available 0: unavailable
-//    reg [NUM_PHYSICAL_REGS-1:0] register_file_scoreboard; 
-//    reg [NUM_FUNCTIONAL_UNITS-1:0] funct_unit_scoreboard;
-//
-//    // Issue queue: holds up to 64 instructions - see below more details
-//    reg [ENTRY_SIZE-1:0] issue_queue [NUM_INSTRUCTIONS-1:0];
-//    
-//    // Issue queue free list and ready lists
-//    reg [NUM_INSTRUCTIONS-1:0] use_bits; 
-//    reg [NUM_INSTRUCTIONS-1:0] src1_ready; 
-//    reg [NUM_INSTRUCTIONS-1:0] src2_ready; 
-//
-//    // Free Entry and round robin FU counter
-//    reg [IQ_INDEX_BITS-1:0] free_entry;
-//    reg [1:0] FU_count;
-//
-//    // issue queue full logic
-//    assign issue_queue_full = (free_entry == INVALID_ENTRY);
-//
-//    // forward / wake-up logic
-//
-//    // holds which functional unit to forward from: 00 - unit0, 01 - unit1, 10 - unit 2, 11 - no forwarding
-//    reg [1:0] rs1_fwd; 
-//    reg [1:0] rs2_fwd;
-//
-//    reg [5:0] fwd_entry;
-//
-//    // combinational used to update ready list on forwards
-//    reg [NUM_INSTRUCTIONS-1:0] src1_ready_fwd; 
-//    reg [NUM_INSTRUCTIONS-1:0] src2_ready_fwd; 
-//
-//    // holds issued instruction
-//    reg [ENTRY_SIZE-1:0] issued_instruction;
-//	 
-//	 reg prev_write_enable;
-//	 
-//
-//    integer i;
-//
-//    // free entry logic
-//    always @(*) begin
-//
-//        free_entry = INVALID_ENTRY;
-//
-//        // Priority encoder to find first entry
-//        for (i = 0; i < NUM_INSTRUCTIONS; i = i + 1) begin
-//            if (use_bits[i] == 1'b0 && free_entry == INVALID_ENTRY) begin
-//                free_entry = i;
-//            end
-//        end
-//    end
-//
-//    // forward logic
-//    always @(*) begin
-//			/*if(write_enable) begin
-//				prev_write_enable = write_enable;
-//			end else begin
-//				prev_write_enable = 0;
-//			end
-//*/
-//        // default values to avoid latches: if rs1_fwd or rs2_fwd are low values don't matter
-//        src1_ready_fwd = src1_ready;
-//        src2_ready_fwd = src2_ready;  
-//        rs1_fwd = 2'b11;
-//        rs2_fwd = 2'b11;
-//        fwd_entry = INVALID_ENTRY;
-//
-//        for (i = 0; i < NUM_INSTRUCTIONS; i = i + 1) begin
-//            
-//            if (fwd_enable) begin
-//                
-//                // FORWARD FUNCTIONAL UNIT 0
-//					 if(use_bits[i])begin
-//
-//						 // both forward
-//						 if (issue_queue[i][115:110] == fwd_rd_funct_unit0 && issue_queue[i][77:72] == fwd_rd_funct_unit0) begin
-//							  src1_ready_fwd[i] = 1'b1;
-//							  rs1_fwd = 2'b00; 
-//							  src2_ready_fwd[i] = 1'b1;
-//							  rs2_fwd = 2'b00;    
-//							  fwd_entry = i;
-//						 end
-//						 // rs1 forward
-//						 else if (issue_queue[i][115:110] == fwd_rd_funct_unit0) begin
-//							  src1_ready_fwd[i] = 1'b1;
-//							  rs1_fwd = 2'b00; 
-//							  fwd_entry = i;
-//						 end
-//						 // rs2 forward
-//						 else if (issue_queue[i][77:72] == fwd_rd_funct_unit0) begin
-//							  src2_ready_fwd[i] = 1'b1;
-//							  rs2_fwd = 2'b00;    
-//							  fwd_entry = i;
-//						 end
-//
-//						 // FORWARD FUNCTIONAL UNIT 1
-//
-//						 // both forward
-//						 if (issue_queue[i][115:110] == fwd_rd_funct_unit1 && issue_queue[i][77:72] == fwd_rd_funct_unit1) begin
-//							  src1_ready_fwd[i] = 1'b1;
-//							  rs1_fwd = 2'b01; 
-//							  src2_ready_fwd[i] = 1'b1;
-//							  rs2_fwd = 2'b01;    
-//							  fwd_entry = i;
-//						 end
-//						 // rs1 forward
-//						 else if (issue_queue[i][115:110] == fwd_rd_funct_unit1) begin
-//							  src1_ready_fwd[i] = 1'b1;
-//							  rs1_fwd = 2'b01; 
-//							  fwd_entry = i;
-//						 end
-//						 // rs2 forward
-//						 else if (issue_queue[i][77:72] == fwd_rd_funct_unit1) begin
-//							  src2_ready_fwd[i] = 1'b1;
-//							  rs2_fwd = 2'b01;    
-//							  fwd_entry = i;
-//						 end
-//
-//						 // FORWARD FUNCTIONAL UNIT 2
-//
-//						 // both forward
-//						 if (issue_queue[i][115:110] == fwd_rd_funct_unit2 && issue_queue[i][77:72] == fwd_rd_funct_unit2) begin
-//							  src1_ready_fwd[i] = 1'b1;
-//							  rs1_fwd = 2'b10; 
-//							  src2_ready_fwd[i] = 1'b1;
-//							  rs2_fwd = 2'b10; 
-//							  fwd_entry = i;
-//						 end
-//						 // rs1 forward
-//						 else if (issue_queue[i][115:110] == fwd_rd_funct_unit2) begin
-//							  src1_ready_fwd[i] = 1'b1;
-//							  rs1_fwd = 2'b10; 
-//							  fwd_entry = i;
-//						 end
-//						 // rs2 forward
-//						 else if (issue_queue[i][77:72] == fwd_rd_funct_unit2) begin
-//							  src2_ready_fwd[i] = 1'b1;
-//							  rs2_fwd = 2'b10; 
-//							  fwd_entry = i;
-//						 end
-//					end
-//            end
-//        end
-//    end
-//
-//    // reset and update
-//    always @(posedge clk or negedge reset_n) begin
-//
-//        if (!reset_n) begin
-//            
-//            // Reset all logic
-//            for (i = 0; i < NUM_INSTRUCTIONS; i = i + 1) begin
-//                issue_queue[i] <= {ENTRY_SIZE{1'b0}};
-//            end
-//
-//            register_file_scoreboard <= {NUM_PHYSICAL_REGS{1'b1}};
-//            funct_unit_scoreboard <= {NUM_FUNCTIONAL_UNITS{1'b1}};
-//            use_bits <= {NUM_INSTRUCTIONS{1'b0}};
-//            src1_ready <= {NUM_INSTRUCTIONS{1'b0}};
-//            src2_ready <= {NUM_INSTRUCTIONS{1'b0}};
-//            FU_count <= 2'b0;
-//
-//            issued_funct_unit0 <= {ENTRY_SIZE{1'b0}};
-//            issued_funct_unit1 <= {ENTRY_SIZE{1'b0}};
-//            issued_funct_unit2 <= {ENTRY_SIZE{1'b0}};
-//
-//            funct0_enable <=  1'b0;
-//            funct1_enable <=  1'b0;
-//            funct2_enable <=  1'b0;
-//
-//        end 
-//        else begin
-//				prev_write_enable <= write_enable;
-//				
-//            
-//            if (prev_write_enable && !issue_queue_full) begin
-//                
-//                issue_queue[free_entry] <= {
-//                    funct7, funct3, opcode, phys_rd, phys_rs1, phys_rs1_val,
-//                    phys_rs2, phys_rs2_val, immediate,
-//                    ROB_entry_index, FU_count
-//                };
-//                $display("Free entry: %d", free_entry);
-//                // mark entry as used
-//                use_bits[free_entry] <= 1'b1;
-//
-//                // assign ready regs
-//					 register_file_scoreboard[phys_rd] <= 1'b0; // set dest reg as in use
-//                src1_ready[free_entry] <= register_file_scoreboard[phys_rs1];
-//                src2_ready[free_entry] <= register_file_scoreboard[phys_rs2];
-//                
-//                // Round robin logic: increment FU count
-//                FU_count <= (FU_count + 1) % NUM_FUNCTIONAL_UNITS;
-//            end
-//
-//            // wake up logic: ready by next clock cycle
-//            case (rs1_fwd)
-//                2'b00: 
-//                begin
-//                    issue_queue[fwd_entry][109:78] <= fwd_rd_val_funct_unit0;
-//                    src1_ready[fwd_entry] <= 1'b1;
-//                    $display("Forward reg 1: %d", fwd_entry);
-//                end
-//                2'b01:
-//                begin
-//                    issue_queue[fwd_entry][109:78] <= fwd_rd_val_funct_unit1;
-//                    src1_ready[fwd_entry] <= 1'b1;
-//                    $display("Forward reg 1: %d", fwd_entry);
-//                end
-//                2'b10:
-//                begin
-//                    issue_queue[fwd_entry][109:78] <= fwd_rd_val_funct_unit2;
-//                    src1_ready[fwd_entry] <= 1'b1;
-//                    $display("Forward reg 1: %d", fwd_entry);
-//                end
-//                default: 
-//                    $display("No forward");
-//            endcase
-//
-//            case (rs2_fwd)
-//                2'b00: 
-//                begin
-//                    issue_queue[fwd_entry][71:40] <= fwd_rd_val_funct_unit0;
-//                    src2_ready[fwd_entry] <= 1'b1;
-//                    $display("Forward reg 2: %d", fwd_entry);
-//                end
-//                2'b01:
-//                begin
-//                    issue_queue[fwd_entry][71:40] <= fwd_rd_val_funct_unit1;
-//                    src2_ready[fwd_entry] <= 1'b1;
-//                    $display("Forward reg 2: %d", fwd_entry);
-//                end
-//                2'b10:
-//                begin
-//                    issue_queue[fwd_entry][71:40] <= fwd_rd_val_funct_unit2;
-//                    src2_ready[fwd_entry] <= 1'b1;
-//                    $display("Forward reg 2: %d", fwd_entry);
-//                end
-//                default: 
-//                    $display("No forward");            
-//            endcase
-//
-//            // flags to enable functional units
-//            funct0_enable <= 1'b0;
-//            funct1_enable <= 1'b0;
-//            funct2_enable <= 1'b0;
-//
-//            // Issue logic
-//            for (i = 0; i < NUM_INSTRUCTIONS; i = i + 1) begin
-//                // both sources ready and functional unit ready (bits 1:0 of issue queue entry are the functional unit it corresponds to)
-//                if (src1_ready_fwd[i] && src2_ready_fwd[i] && funct_unit_scoreboard[issue_queue[i][1:0]] && use_bits[i]==1) begin
-//                    
-//                    use_bits[i] <= 1'b0; 
-//                    //register_file_scoreboard[phys_rd] <= 1'b0; // set dest reg as in use
-//                    
-//                    // default not forwarding
-//                    issued_instruction = issue_queue[i];    
-//
-//                    // send to correct functional unit
-//                    case (issued_instruction[1:0])
-//                        2'b00: 
-//                        begin
-//
-//                            // both source registers forward
-//                            if (rs1_fwd && rs2_fwd && i == fwd_entry) begin
-//                                issued_instruction = { issue_queue[i][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit0, 
-//                                issue_queue[i][77:72], fwd_rd_val_funct_unit0, issue_queue[i][39:0] };
-//                            end
-//                            // forward rs1
-//                            else if (rs1_fwd && i == fwd_entry) begin
-//                                issued_instruction = { issue_queue[i][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit0, issue_queue[i][77:0] };                  
-//                            end
-//                            // forward rs2
-//                            else if (rs2_fwd && i == fwd_entry) begin
-//                                issued_instruction = { issue_queue[i][ENTRY_SIZE-1:72], fwd_rd_val_funct_unit0, issue_queue[i][39:0] };              
-//                            end
-//
-//                            funct0_enable <= 1'b1;
-//                            issued_funct_unit0 <= issued_instruction;
-//                            funct_unit_scoreboard[0] <= 1'b0;
-//                            $display("Issued to FU 0! from %d, instr %h",i, issued_instruction);
-//                        end
-//                        2'b01:
-//                        begin
-//
-//                            // both source registers forward
-//                            if (rs1_fwd && rs2_fwd && i == fwd_entry) begin
-//                                issued_instruction = { issue_queue[i][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit1, 
-//                                issue_queue[i][77:72], fwd_rd_val_funct_unit1, issue_queue[i][39:0] };
-//                            end
-//                            // forward rs1
-//                            else if (rs1_fwd && i == fwd_entry) begin
-//                                issued_instruction = { issue_queue[i][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit1, issue_queue[i][77:0] };                  
-//                            end
-//                            // forward rs2
-//                            else if (rs2_fwd && i == fwd_entry) begin
-//                                issued_instruction = { issue_queue[i][ENTRY_SIZE-1:72], fwd_rd_val_funct_unit1, issue_queue[i][39:0] };              
-//                            end
-//
-//                            funct1_enable <= 1'b1;
-//                            issued_funct_unit1 <= issued_instruction;
-//                            funct_unit_scoreboard[1] <= 1'b0;
-//                            $display("Issued to FU 1! from %d",i);
-//                        end
-//                        2'b10:
-//                        begin
-//                            
-//                            // both source registers forward
-//                            if (rs1_fwd && rs2_fwd && i == fwd_entry) begin
-//                                issued_instruction = { issue_queue[i][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit2, 
-//                                issue_queue[i][77:72], fwd_rd_val_funct_unit2, issue_queue[i][39:0] };
-//                            end
-//                            // forward rs1
-//                            else if (rs1_fwd && i == fwd_entry) begin
-//                                issued_instruction = { issue_queue[i][ENTRY_SIZE-1:110], fwd_rd_val_funct_unit2, issue_queue[i][77:0] };                  
-//                            end
-//                            // forward rs2
-//                            else if (rs2_fwd && i == fwd_entry) begin
-//                                issued_instruction = { issue_queue[i][ENTRY_SIZE-1:72], fwd_rd_val_funct_unit2, issue_queue[i][39:0] };              
-//                            end
-//                            
-//                            funct2_enable <= 1'b1;
-//                            issued_funct_unit2 <= issued_instruction;
-//                            funct_unit_scoreboard[2] <= 1'b0;
-//                            $display("Issued to FU 2! from %d",i);
-//                        end
-//                        default: 
-//                        begin
-//                            $display("Warning: Invalid functional unit code %b", issued_instruction[1:0]);
-//                        end
-//                    endcase
-//            end
-//        end
-//
-//    // reset functional units since all instructions take one clock cycle: can be changed in future
-//    funct_unit_scoreboard <= {NUM_FUNCTIONAL_UNITS{1'b1}};
-//    end 
-//
-//    end
-//    
-//                        
-//
-//
-//
-//endmodule
